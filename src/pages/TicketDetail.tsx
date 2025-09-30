@@ -184,15 +184,6 @@ export default function TicketDetail() {
         </div>
 
         <Card className="print-container border-none shadow-none">
-          {/* En-tête moderne (visible uniquement à l'impression) */}
-          <div className="hidden print:block print-modern-header">
-            <img src={pcciLogo} alt="Logo" className="print-logo" />
-            <div className="print-header-info">
-              <div className="print-title">{ticket.title}</div>
-              <div className="print-subtitle">Réf: {ticket.code} | {new Date(ticket.created_at).toLocaleDateString('fr-FR')}</div>
-            </div>
-          </div>
-
           {/* En-tête normal (visible à l'écran) */}
           <CardHeader className="print:hidden">
             <div className="flex items-start justify-between">
