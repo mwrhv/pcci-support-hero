@@ -93,79 +93,76 @@ export default function TicketDetail() {
               page-break-inside: avoid;
               break-inside: avoid;
               background: white;
+              min-height: 100vh;
             }
             .print-modern-header {
               display: flex;
               justify-content: space-between;
               align-items: center;
-              padding: 15px 30px;
-              border-bottom: 2px solid #000000;
+              padding: 25px 40px;
+              border-bottom: 3px solid #000000;
               background: white;
             }
             .print-logo {
-              max-height: 50px;
+              max-height: 70px;
               width: auto;
             }
             .print-header-info {
               text-align: right;
             }
             .print-title {
-              font-size: 18px;
+              font-size: 22px;
               font-weight: 700;
               color: #000000;
-              margin-bottom: 3px;
+              margin-bottom: 5px;
             }
             .print-subtitle {
-              font-size: 11px;
+              font-size: 13px;
               color: #000000;
               font-weight: 400;
             }
             .print-modern-body {
-              padding: 15px 30px;
+              padding: 30px 40px 40px 40px;
               background: white;
             }
             .print-cards-grid {
               display: grid;
               grid-template-columns: repeat(3, 1fr);
-              gap: 10px;
-              margin-bottom: 10px;
+              gap: 18px;
+              margin-bottom: 18px;
             }
             .print-card {
-              border: 1.5px solid #000000;
-              border-radius: 4px;
-              padding: 10px;
+              border: 2px solid #000000;
+              border-radius: 6px;
+              padding: 16px;
               background: white;
               page-break-inside: avoid;
+              min-height: 70px;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
             }
             .print-card-full {
               grid-column: 1 / -1;
+              min-height: auto;
             }
             .print-card-title {
-              font-size: 8px;
+              font-size: 10px;
               font-weight: 700;
               color: #000000;
               text-transform: uppercase;
-              letter-spacing: 0.5px;
-              margin-bottom: 5px;
+              letter-spacing: 0.8px;
+              margin-bottom: 8px;
             }
             .print-card-value {
-              font-size: 11px;
+              font-size: 14px;
               color: #000000;
               font-weight: 400;
-              line-height: 1.4;
-            }
-            .print-section-header {
-              font-size: 12px;
-              font-weight: 700;
-              color: #000000;
-              text-transform: uppercase;
-              margin: 12px 0 8px 0;
-              padding-bottom: 5px;
-              border-bottom: 1.5px solid #000000;
+              line-height: 1.5;
             }
             @page {
               size: A4;
-              margin: 1cm;
+              margin: 0.8cm;
             }
           }
         `}</style>
