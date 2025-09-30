@@ -16,6 +16,7 @@ const ficheSchema = z.object({
   title: z.string().trim().min(5, { message: "Le titre doit contenir au moins 5 caractères" }).max(200),
   description: z.string().trim().min(10, { message: "La description doit contenir au moins 10 caractères" }),
   priority: z.enum(["Low", "Medium", "High", "Critical"]),
+  campagne: z.enum(["ORANGE", "YAS", "EXPRESSO", "CANAL"], { message: "La campagne est requise" }),
   prenom: z.string().trim().min(2, { message: "Le prénom est requis" }),
   nom: z.string().trim().min(2, { message: "Le nom est requis" }),
   cni: z.string().trim().min(1, { message: "Le CNI est requis" }),
@@ -44,6 +45,7 @@ export default function FicheDepartTeletravail() {
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const priority = formData.get("priority") as string;
+    const campagne = formData.get("campagne") as string;
     const prenom = formData.get("prenom") as string;
     const nom = formData.get("nom") as string;
     const cni = formData.get("cni") as string;
@@ -54,12 +56,13 @@ export default function FicheDepartTeletravail() {
 
     try {
       const validated = ficheSchema.parse({ 
-        title, description, priority,
+        title, description, priority, campagne,
         prenom, nom, cni, demeurant, nom_machine, place, numero_sim 
       });
 
       const metadata = {
         type: "Fiche Départ Télétravail",
+        campagne: validated.campagne,
         prenom: validated.prenom,
         nom: validated.nom,
         cni: validated.cni,
@@ -162,6 +165,21 @@ export default function FicheDepartTeletravail() {
                     <SelectItem value="Medium">Moyenne</SelectItem>
                     <SelectItem value="High">Haute</SelectItem>
                     <SelectItem value="Critical">Critique</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="campagne">Campagne *</Label>
+                <Select name="campagne" required disabled={loading}>
+                  <SelectTrigger id="campagne">
+                    <SelectValue placeholder="Sélectionner la campagne" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ORANGE">ORANGE</SelectItem>
+                    <SelectItem value="YAS">YAS</SelectItem>
+                    <SelectItem value="EXPRESSO">EXPRESSO</SelectItem>
+                    <SelectItem value="CANAL">CANAL</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
