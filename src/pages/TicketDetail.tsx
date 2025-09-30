@@ -100,7 +100,6 @@ export default function TicketDetail() {
               justify-content: space-between;
               align-items: center;
               padding: 25px 40px;
-              border-bottom: 3px solid #000000;
               background: white;
             }
             .print-logo {
