@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Printer, Mail } from "lucide-react";
 import { toast } from "sonner";
-import pcciLogo from "@/assets/pcci-logo.png";
 
 export default function TicketDetail() {
   const { id } = useParams();
@@ -91,89 +90,10 @@ export default function TicketDetail() {
             .print-container {
               page-break-inside: avoid;
               break-inside: avoid;
-              border: 3px solid #1e40af;
-              border-radius: 8px;
-              overflow: hidden;
-            }
-            .print-id-header {
-              background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-              color: white;
-              padding: 20px 30px;
-              display: grid;
-              grid-template-columns: auto 1fr;
-              gap: 20px;
-              align-items: center;
-            }
-            .print-logo {
-              max-height: 70px;
-              width: auto;
-              background: white;
-              padding: 8px;
-              border-radius: 4px;
-            }
-            .print-title-box h1 {
-              margin: 0;
-              font-size: 20px;
-              font-weight: 700;
-            }
-            .print-title-box p {
-              margin: 5px 0 0 0;
-              font-size: 13px;
-              opacity: 0.95;
-            }
-            .print-id-body {
-              padding: 25px 30px;
-            }
-            .print-row {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 20px;
-              margin-bottom: 20px;
-            }
-            .print-field-card {
-              border: 1px solid #e5e7eb;
-              border-radius: 6px;
-              padding: 12px;
-              background: #f9fafb;
-            }
-            .print-field-card-label {
-              font-size: 10px;
-              text-transform: uppercase;
-              color: #6b7280;
-              font-weight: 600;
-              margin-bottom: 6px;
-              letter-spacing: 0.5px;
-            }
-            .print-field-card-value {
-              font-size: 13px;
-              color: #1f2937;
-              font-weight: 500;
-            }
-            .print-full-width {
-              grid-column: 1 / -1;
-            }
-            .print-description {
-              border: 1px solid #e5e7eb;
-              border-radius: 6px;
-              padding: 15px;
-              background: white;
-              margin-top: 10px;
-              white-space: pre-wrap;
-              font-size: 12px;
-              line-height: 1.6;
-            }
-            .print-footer {
-              background: #f3f4f6;
-              padding: 15px 30px;
-              border-top: 2px solid #e5e7eb;
-              display: flex;
-              justify-content: space-between;
-              font-size: 11px;
-              color: #6b7280;
             }
             @page {
               size: A4;
-              margin: 1.5cm;
+              margin: 1cm;
             }
           }
         `}</style>
@@ -196,156 +116,133 @@ export default function TicketDetail() {
         </div>
 
         <Card className="print-container">
-          {/* En-tête style carte d'identité (visible uniquement à l'impression) */}
-          <div className="hidden print:block print-id-header">
-            <img src={pcciLogo} alt="Logo" className="print-logo" />
-            <div className="print-title-box">
-              <h1>{ticket.title}</h1>
-              <p>Code: {ticket.code} | {new Date(ticket.created_at).toLocaleDateString()}</p>
-            </div>
-          </div>
-
-          {/* En-tête normal (visible à l'écran) */}
-          <CardHeader className="print:hidden">
-            <div className="flex items-start justify-between">
+          <CardHeader>
+            <div className="flex items-start justify-between print:block">
               <div>
-                <CardTitle className="text-2xl">{ticket.title}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-2">
+                <CardTitle className="text-2xl print:text-xl print:mb-2">{ticket.title}</CardTitle>
+                <p className="text-sm text-muted-foreground mt-2 print:text-base print:font-semibold print:text-foreground">
                   Code: {ticket.code}
                 </p>
               </div>
-              <Badge>{ticket.status}</Badge>
+              <Badge className="print:hidden">{ticket.status}</Badge>
             </div>
           </CardHeader>
           
-          <CardContent className="print:p-0 print-id-body">
-            <div className="print-row">
+          <CardContent>
+            <div className="space-y-4">
               {metadata.type && (
-                <div className="print-field-card">
-                  <div className="print-field-card-label">Type de fiche</div>
-                  <div className="print-field-card-value">{metadata.type}</div>
+                <div className="flex border-b pb-2">
+                  <span className="font-semibold w-1/3">Type de fiche:</span>
+                  <span className="w-2/3">{metadata.type}</span>
                 </div>
               )}
-              {metadata.campagne && (
-                <div className="print-field-card">
-                  <div className="print-field-card-label">Campagne</div>
-                  <div className="print-field-card-value">{metadata.campagne}</div>
-                </div>
-              )}
-            </div>
 
-            <div className="print-row">
               {metadata.prenom && (
-                <div className="print-field-card">
-                  <div className="print-field-card-label">Prénom</div>
-                  <div className="print-field-card-value">{metadata.prenom}</div>
+                <div className="flex border-b pb-2">
+                  <span className="font-semibold w-1/3">Prénom:</span>
+                  <span className="w-2/3">{metadata.prenom}</span>
                 </div>
               )}
+
               {metadata.nom && (
-                <div className="print-field-card">
-                  <div className="print-field-card-label">Nom</div>
-                  <div className="print-field-card-value">{metadata.nom}</div>
+                <div className="flex border-b pb-2">
+                  <span className="font-semibold w-1/3">Nom:</span>
+                  <span className="w-2/3">{metadata.nom}</span>
                 </div>
               )}
-            </div>
 
-            <div className="print-row">
               {metadata.id_personnel && (
-                <div className="print-field-card">
-                  <div className="print-field-card-label">ID Personnel</div>
-                  <div className="print-field-card-value">{metadata.id_personnel}</div>
+                <div className="flex border-b pb-2">
+                  <span className="font-semibold w-1/3">ID Personnel:</span>
+                  <span className="w-2/3">{metadata.id_personnel}</span>
                 </div>
               )}
+
               {metadata.cni && (
-                <div className="print-field-card">
-                  <div className="print-field-card-label">CNI</div>
-                  <div className="print-field-card-value">{metadata.cni}</div>
+                <div className="flex border-b pb-2">
+                  <span className="font-semibold w-1/3">CNI:</span>
+                  <span className="w-2/3">{metadata.cni}</span>
                 </div>
               )}
-            </div>
 
-            {metadata.demeurant && (
-              <div className="print-row">
-                <div className="print-field-card print-full-width">
-                  <div className="print-field-card-label">Demeurant</div>
-                  <div className="print-field-card-value">{metadata.demeurant}</div>
+              {metadata.demeurant && (
+                <div className="flex border-b pb-2">
+                  <span className="font-semibold w-1/3">Demeurant:</span>
+                  <span className="w-2/3">{metadata.demeurant}</span>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="print-row">
+              {metadata.campagne && (
+                <div className="flex border-b pb-2">
+                  <span className="font-semibold w-1/3">Campagne:</span>
+                  <span className="w-2/3">{metadata.campagne}</span>
+                </div>
+              )}
+
               {metadata.type_mouvement && (
-                <div className="print-field-card">
-                  <div className="print-field-card-label">Type de mouvement</div>
-                  <div className="print-field-card-value">{metadata.type_mouvement}</div>
+                <div className="flex border-b pb-2">
+                  <span className="font-semibold w-1/3">Type de mouvement:</span>
+                  <span className="w-2/3">{metadata.type_mouvement}</span>
                 </div>
               )}
-              {metadata.priority && (
-                <div className="print-field-card">
-                  <div className="print-field-card-label">Priorité</div>
-                  <div className="print-field-card-value">{ticket.priority}</div>
-                </div>
-              )}
-            </div>
 
-            <div className="print-row">
               {metadata.nom_machine && (
-                <div className="print-field-card">
-                  <div className="print-field-card-label">Nom Machine</div>
-                  <div className="print-field-card-value">{metadata.nom_machine}</div>
+                <div className="flex border-b pb-2">
+                  <span className="font-semibold w-1/3">Nom Machine:</span>
+                  <span className="w-2/3">{metadata.nom_machine}</span>
                 </div>
               )}
+
               {metadata.place && (
-                <div className="print-field-card">
-                  <div className="print-field-card-label">Place</div>
-                  <div className="print-field-card-value">{metadata.place}</div>
+                <div className="flex border-b pb-2">
+                  <span className="font-semibold w-1/3">Place:</span>
+                  <span className="w-2/3">{metadata.place}</span>
                 </div>
               )}
-            </div>
 
-            {metadata.numero_sim && (
-              <div className="print-row">
-                <div className="print-field-card print-full-width">
-                  <div className="print-field-card-label">Numéro SIM</div>
-                  <div className="print-field-card-value">{metadata.numero_sim}</div>
+              {metadata.numero_sim && (
+                <div className="flex border-b pb-2">
+                  <span className="font-semibold w-1/3">Numéro SIM:</span>
+                  <span className="w-2/3">{metadata.numero_sim}</span>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="print-row">
               {metadata.date_depart && (
-                <div className="print-field-card">
-                  <div className="print-field-card-label">Date de départ</div>
-                  <div className="print-field-card-value">
+                <div className="flex border-b pb-2">
+                  <span className="font-semibold w-1/3">Date de départ:</span>
+                  <span className="w-2/3">
                     {new Date(metadata.date_depart).toLocaleDateString()}
-                  </div>
+                  </span>
                 </div>
               )}
+
               {metadata.date_retour && (
-                <div className="print-field-card">
-                  <div className="print-field-card-label">Date de retour</div>
-                  <div className="print-field-card-value">
+                <div className="flex border-b pb-2">
+                  <span className="font-semibold w-1/3">Date de retour:</span>
+                  <span className="w-2/3">
                     {new Date(metadata.date_retour).toLocaleDateString()}
-                  </div>
+                  </span>
                 </div>
               )}
-            </div>
 
-            {ticket.description && (
-              <div className="print-row">
-                <div className="print-field-card print-full-width">
-                  <div className="print-field-card-label">Description</div>
-                  <div className="print-description">{ticket.description}</div>
-                </div>
+              <div className="flex border-b pb-2">
+                <span className="font-semibold w-1/3">Description:</span>
+                <span className="w-2/3 whitespace-pre-wrap">{ticket.description}</span>
               </div>
-            )}
-          </CardContent>
 
-          {/* Pied de page style carte d'identité (visible uniquement à l'impression) */}
-          <div className="hidden print:block print-footer">
-            <div>Statut: {ticket.status}</div>
-            <div>Créé le: {new Date(ticket.created_at).toLocaleDateString()} à {new Date(ticket.created_at).toLocaleTimeString()}</div>
-          </div>
+              <div className="flex border-b pb-2">
+                <span className="font-semibold w-1/3">Date de création:</span>
+                <span className="w-2/3">
+                  {new Date(ticket.created_at).toLocaleDateString()} à {new Date(ticket.created_at).toLocaleTimeString()}
+                </span>
+              </div>
+
+              <div className="flex border-b pb-2">
+                <span className="font-semibold w-1/3">Priorité:</span>
+                <span className="w-2/3">{ticket.priority}</span>
+              </div>
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>
