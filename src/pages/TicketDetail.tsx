@@ -5,7 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Printer, Mail } from "lucide-react";
+import { ArrowLeft, Printer, Mail, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 export default function TicketDetail() {
@@ -88,6 +88,10 @@ export default function TicketDetail() {
           </Button>
           
           <div className="flex gap-2">
+            <Button onClick={() => navigate("/tickets/new")}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nouveau ticket
+            </Button>
             <Button variant="outline" size="sm" onClick={handlePrint}>
               <Printer className="mr-2 h-4 w-4" />
               Imprimer
