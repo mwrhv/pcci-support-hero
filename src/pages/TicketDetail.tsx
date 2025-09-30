@@ -106,7 +106,7 @@ export default function TicketDetail() {
                 <CardTitle className="text-2xl">{ticket.title}</CardTitle>
                 <p className="text-sm text-muted-foreground mt-2">Code: {ticket.code}</p>
               </div>
-              <Badge>{ticket.status}</Badge>
+              <Badge className="print:hidden">{ticket.status}</Badge>
             </div>
           </CardHeader>
           
