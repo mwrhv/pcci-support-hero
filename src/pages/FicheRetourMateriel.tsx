@@ -18,6 +18,7 @@ const ficheSchema = z.object({
   type_mouvement: z.enum(["Démission", "Retour sur site"], { message: "Le type de mouvement est requis" }),
   prenom: z.string().trim().min(2, { message: "Le prénom est requis" }),
   nom: z.string().trim().min(2, { message: "Le nom est requis" }),
+  id_personnel: z.string().trim().min(1, { message: "L'ID est requis" }),
   cni: z.string().trim().min(1, { message: "Le CNI est requis" }),
   demeurant: z.string().trim().min(1, { message: "Le demeurant est requis" }),
   nom_machine: z.string().trim().min(1, { message: "Le nom de la machine est requis" }),
@@ -46,6 +47,7 @@ export default function FicheRetourMateriel() {
     const type_mouvement = formData.get("type_mouvement") as string;
     const prenom = formData.get("prenom") as string;
     const nom = formData.get("nom") as string;
+    const id_personnel = formData.get("id_personnel") as string;
     const cni = formData.get("cni") as string;
     const demeurant = formData.get("demeurant") as string;
     const nom_machine = formData.get("nom_machine") as string;
@@ -55,7 +57,7 @@ export default function FicheRetourMateriel() {
     try {
       const validated = ficheSchema.parse({ 
         description, campagne, type_mouvement,
-        prenom, nom, cni, demeurant, nom_machine, place, numero_sim 
+        prenom, nom, id_personnel, cni, demeurant, nom_machine, place, numero_sim 
       });
 
       const title = `Retour Matériel - ${validated.prenom} ${validated.nom} - ${validated.campagne}`;
@@ -66,6 +68,7 @@ export default function FicheRetourMateriel() {
         type_mouvement: validated.type_mouvement,
         prenom: validated.prenom,
         nom: validated.nom,
+        id_personnel: validated.id_personnel,
         cni: validated.cni,
         demeurant: validated.demeurant,
         nom_machine: validated.nom_machine,
@@ -144,6 +147,11 @@ export default function FicheRetourMateriel() {
                   <div className="space-y-2">
                     <Label htmlFor="nom">Nom *</Label>
                     <Input id="nom" name="nom" required disabled={loading} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="id_personnel">ID *</Label>
+                    <Input id="id_personnel" name="id_personnel" required disabled={loading} />
                   </div>
 
                   <div className="space-y-2">
