@@ -342,6 +342,7 @@ export type Database = {
           description: string
           due_at: string | null
           id: string
+          metadata: Json | null
           priority: Database["public"]["Enums"]["priority_level"]
           requester_id: string
           resolved_at: string | null
@@ -360,6 +361,7 @@ export type Database = {
           description: string
           due_at?: string | null
           id?: string
+          metadata?: Json | null
           priority?: Database["public"]["Enums"]["priority_level"]
           requester_id: string
           resolved_at?: string | null
@@ -378,6 +380,7 @@ export type Database = {
           description?: string
           due_at?: string | null
           id?: string
+          metadata?: Json | null
           priority?: Database["public"]["Enums"]["priority_level"]
           requester_id?: string
           resolved_at?: string | null
