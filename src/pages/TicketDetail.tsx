@@ -95,40 +95,45 @@ export default function TicketDetail() {
               background: white;
             }
             .print-modern-header {
-              padding: 30px 40px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 15px 30px;
               border-bottom: 2px solid #000000;
               background: white;
             }
             .print-logo {
-              max-height: 70px;
+              max-height: 50px;
               width: auto;
-              margin-bottom: 20px;
+            }
+            .print-header-info {
+              text-align: right;
             }
             .print-title {
-              font-size: 24px;
+              font-size: 18px;
               font-weight: 700;
               color: #000000;
-              margin-bottom: 8px;
+              margin-bottom: 3px;
             }
             .print-subtitle {
-              font-size: 14px;
+              font-size: 11px;
               color: #000000;
               font-weight: 400;
             }
             .print-modern-body {
-              padding: 30px 40px;
+              padding: 15px 30px;
               background: white;
             }
             .print-cards-grid {
               display: grid;
-              grid-template-columns: repeat(2, 1fr);
-              gap: 20px;
-              margin-bottom: 20px;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 10px;
+              margin-bottom: 10px;
             }
             .print-card {
-              border: 2px solid #000000;
-              border-radius: 8px;
-              padding: 20px;
+              border: 1.5px solid #000000;
+              border-radius: 4px;
+              padding: 10px;
               background: white;
               page-break-inside: avoid;
             }
@@ -136,31 +141,31 @@ export default function TicketDetail() {
               grid-column: 1 / -1;
             }
             .print-card-title {
-              font-size: 10px;
+              font-size: 8px;
               font-weight: 700;
               color: #000000;
               text-transform: uppercase;
-              letter-spacing: 1px;
-              margin-bottom: 10px;
+              letter-spacing: 0.5px;
+              margin-bottom: 5px;
             }
             .print-card-value {
-              font-size: 14px;
+              font-size: 11px;
               color: #000000;
               font-weight: 400;
-              line-height: 1.6;
+              line-height: 1.4;
             }
             .print-section-header {
-              font-size: 16px;
+              font-size: 12px;
               font-weight: 700;
               color: #000000;
               text-transform: uppercase;
-              margin: 30px 0 20px 0;
-              padding-bottom: 10px;
-              border-bottom: 2px solid #000000;
+              margin: 12px 0 8px 0;
+              padding-bottom: 5px;
+              border-bottom: 1.5px solid #000000;
             }
             @page {
               size: A4;
-              margin: 1.5cm;
+              margin: 1cm;
             }
           }
         `}</style>
@@ -183,11 +188,13 @@ export default function TicketDetail() {
         </div>
 
         <Card className="print-container border-none shadow-none">
-          {/* En-tête moderne (visible uniquement à l'impression) */}
+          {/* En-tête moderne compact (visible uniquement à l'impression) */}
           <div className="hidden print:block print-modern-header">
             <img src={pcciLogo} alt="Logo" className="print-logo" />
-            <div className="print-title">{ticket.title}</div>
-            <div className="print-subtitle">Référence: {ticket.code} | {new Date(ticket.created_at).toLocaleDateString('fr-FR')}</div>
+            <div className="print-header-info">
+              <div className="print-title">{ticket.title}</div>
+              <div className="print-subtitle">Réf: {ticket.code} | {new Date(ticket.created_at).toLocaleDateString('fr-FR')}</div>
+            </div>
           </div>
 
           {/* En-tête normal (visible à l'écran) */}
@@ -204,61 +211,97 @@ export default function TicketDetail() {
           </CardHeader>
           
           <CardContent className="print:p-0 print-modern-body">
-            {/* Section Informations Générales */}
-            {(metadata.type || metadata.campagne) && (
-              <>
-                <div className="print-section-header">Informations Générales</div>
-                <div className="print-cards-grid">
-                  {metadata.type && (
-                    <div className="print-card">
-                      <div className="print-card-title">Type de fiche</div>
-                      <div className="print-card-value">{metadata.type}</div>
-                    </div>
-                  )}
-                  {metadata.campagne && (
-                    <div className="print-card">
-                      <div className="print-card-title">Campagne</div>
-                      <div className="print-card-value">{metadata.campagne}</div>
-                    </div>
-                  )}
+            {/* Toutes les informations en grille compacte */}
+            <div className="print-cards-grid">
+              {metadata.type && (
+                <div className="print-card">
+                  <div className="print-card-title">Type de fiche</div>
+                  <div className="print-card-value">{metadata.type}</div>
                 </div>
-              </>
-            )}
-
-            {/* Section Identité */}
-            {(metadata.prenom || metadata.nom || metadata.id_personnel || metadata.cni) && (
-              <>
-                <div className="print-section-header">Identité</div>
-                <div className="print-cards-grid">
-                  {metadata.prenom && (
-                    <div className="print-card">
-                      <div className="print-card-title">Prénom</div>
-                      <div className="print-card-value">{metadata.prenom}</div>
-                    </div>
-                  )}
-                  {metadata.nom && (
-                    <div className="print-card">
-                      <div className="print-card-title">Nom</div>
-                      <div className="print-card-value">{metadata.nom}</div>
-                    </div>
-                  )}
-                  {metadata.id_personnel && (
-                    <div className="print-card">
-                      <div className="print-card-title">ID Personnel</div>
-                      <div className="print-card-value">{metadata.id_personnel}</div>
-                    </div>
-                  )}
-                  {metadata.cni && (
-                    <div className="print-card">
-                      <div className="print-card-title">CNI</div>
-                      <div className="print-card-value">{metadata.cni}</div>
-                    </div>
-                  )}
+              )}
+              {metadata.campagne && (
+                <div className="print-card">
+                  <div className="print-card-title">Campagne</div>
+                  <div className="print-card-value">{metadata.campagne}</div>
                 </div>
-              </>
-            )}
+              )}
+              <div className="print-card">
+                <div className="print-card-title">Statut</div>
+                <div className="print-card-value">{ticket.status}</div>
+              </div>
+              
+              {metadata.prenom && (
+                <div className="print-card">
+                  <div className="print-card-title">Prénom</div>
+                  <div className="print-card-value">{metadata.prenom}</div>
+                </div>
+              )}
+              {metadata.nom && (
+                <div className="print-card">
+                  <div className="print-card-title">Nom</div>
+                  <div className="print-card-value">{metadata.nom}</div>
+                </div>
+              )}
+              {metadata.id_personnel && (
+                <div className="print-card">
+                  <div className="print-card-title">ID Personnel</div>
+                  <div className="print-card-value">{metadata.id_personnel}</div>
+                </div>
+              )}
+              {metadata.cni && (
+                <div className="print-card">
+                  <div className="print-card-title">CNI</div>
+                  <div className="print-card-value">{metadata.cni}</div>
+                </div>
+              )}
+              {metadata.type_mouvement && (
+                <div className="print-card">
+                  <div className="print-card-title">Type de mouvement</div>
+                  <div className="print-card-value">{metadata.type_mouvement}</div>
+                </div>
+              )}
+              <div className="print-card">
+                <div className="print-card-title">Priorité</div>
+                <div className="print-card-value">{ticket.priority}</div>
+              </div>
+              
+              {metadata.nom_machine && (
+                <div className="print-card">
+                  <div className="print-card-title">Nom Machine</div>
+                  <div className="print-card-value">{metadata.nom_machine}</div>
+                </div>
+              )}
+              {metadata.place && (
+                <div className="print-card">
+                  <div className="print-card-title">Place</div>
+                  <div className="print-card-value">{metadata.place}</div>
+                </div>
+              )}
+              {metadata.numero_sim && (
+                <div className="print-card">
+                  <div className="print-card-title">Numéro SIM</div>
+                  <div className="print-card-value">{metadata.numero_sim}</div>
+                </div>
+              )}
+              {metadata.date_depart && (
+                <div className="print-card">
+                  <div className="print-card-title">Date de départ</div>
+                  <div className="print-card-value">
+                    {new Date(metadata.date_depart).toLocaleDateString('fr-FR')}
+                  </div>
+                </div>
+              )}
+              {metadata.date_retour && (
+                <div className="print-card">
+                  <div className="print-card-title">Date de retour</div>
+                  <div className="print-card-value">
+                    {new Date(metadata.date_retour).toLocaleDateString('fr-FR')}
+                  </div>
+                </div>
+              )}
+            </div>
 
-            {/* Adresse */}
+            {/* Adresse en pleine largeur si elle existe */}
             {metadata.demeurant && (
               <div className="print-cards-grid">
                 <div className="print-card print-card-full">
@@ -268,90 +311,13 @@ export default function TicketDetail() {
               </div>
             )}
 
-            {/* Section Détails */}
-            {(metadata.type_mouvement || metadata.nom_machine || metadata.place || metadata.numero_sim || ticket.priority) && (
-              <>
-                <div className="print-section-header">Détails de la demande</div>
-                <div className="print-cards-grid">
-                  {metadata.type_mouvement && (
-                    <div className="print-card">
-                      <div className="print-card-title">Type de mouvement</div>
-                      <div className="print-card-value">{metadata.type_mouvement}</div>
-                    </div>
-                  )}
-                  {metadata.nom_machine && (
-                    <div className="print-card">
-                      <div className="print-card-title">Nom Machine</div>
-                      <div className="print-card-value">{metadata.nom_machine}</div>
-                    </div>
-                  )}
-                  {metadata.place && (
-                    <div className="print-card">
-                      <div className="print-card-title">Place</div>
-                      <div className="print-card-value">{metadata.place}</div>
-                    </div>
-                  )}
-                  {metadata.numero_sim && (
-                    <div className="print-card">
-                      <div className="print-card-title">Numéro SIM</div>
-                      <div className="print-card-value">{metadata.numero_sim}</div>
-                    </div>
-                  )}
-                  <div className="print-card">
-                    <div className="print-card-title">Priorité</div>
-                    <div className="print-card-value">{ticket.priority}</div>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Section Dates */}
-            {(metadata.date_depart || metadata.date_retour) && (
-              <>
-                <div className="print-section-header">Dates</div>
-                <div className="print-cards-grid">
-                  {metadata.date_depart && (
-                    <div className="print-card">
-                      <div className="print-card-title">Date de départ</div>
-                      <div className="print-card-value">
-                        {new Date(metadata.date_depart).toLocaleDateString('fr-FR')}
-                      </div>
-                    </div>
-                  )}
-                  {metadata.date_retour && (
-                    <div className="print-card">
-                      <div className="print-card-title">Date de retour</div>
-                      <div className="print-card-value">
-                        {new Date(metadata.date_retour).toLocaleDateString('fr-FR')}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Section Description */}
-            <div className="print-section-header">Description</div>
+            {/* Description en pleine largeur */}
             <div className="print-cards-grid">
               <div className="print-card print-card-full">
+                <div className="print-card-title">Description</div>
                 <div className="print-card-value" style={{ whiteSpace: 'pre-wrap' }}>
                   {ticket.description}
                 </div>
-              </div>
-            </div>
-
-            {/* Section Système */}
-            <div className="print-section-header">Informations Système</div>
-            <div className="print-cards-grid">
-              <div className="print-card">
-                <div className="print-card-title">Date de création</div>
-                <div className="print-card-value">
-                  {new Date(ticket.created_at).toLocaleDateString('fr-FR')} à {new Date(ticket.created_at).toLocaleTimeString('fr-FR')}
-                </div>
-              </div>
-              <div className="print-card">
-                <div className="print-card-title">Statut</div>
-                <div className="print-card-value">{ticket.status}</div>
               </div>
             </div>
           </CardContent>
