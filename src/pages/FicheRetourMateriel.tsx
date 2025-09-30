@@ -14,7 +14,6 @@ import { z } from "zod";
 
 const ficheSchema = z.object({
   description: z.string().trim().min(10, { message: "La description doit contenir au moins 10 caractères" }),
-  priority: z.enum(["Low", "Medium", "High", "Critical"]),
   campagne: z.enum(["ORANGE", "YAS", "EXPRESSO", "CANAL"], { message: "La campagne est requise" }),
   prenom: z.string().trim().min(2, { message: "Le prénom est requis" }),
   nom: z.string().trim().min(2, { message: "Le nom est requis" }),
@@ -42,7 +41,6 @@ export default function FicheRetourMateriel() {
 
     const formData = new FormData(e.currentTarget);
     const description = formData.get("description") as string;
-    const priority = formData.get("priority") as string;
     const campagne = formData.get("campagne") as string;
     const prenom = formData.get("prenom") as string;
     const nom = formData.get("nom") as string;
@@ -54,7 +52,7 @@ export default function FicheRetourMateriel() {
 
     try {
       const validated = ficheSchema.parse({ 
-        description, priority, campagne,
+        description, campagne,
         prenom, nom, cni, demeurant, nom_machine, place, numero_sim 
       });
 
@@ -77,7 +75,7 @@ export default function FicheRetourMateriel() {
         .insert({
           title: title,
           description: validated.description,
-          priority: validated.priority as any,
+          priority: "Medium" as any,
           requester_id: userId,
           code: "",
           metadata,
@@ -131,37 +129,7 @@ export default function FicheRetourMateriel() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="priority">Priorité *</Label>
-                <Select name="priority" defaultValue="Medium" required disabled={loading}>
-                  <SelectTrigger id="priority">
-                    <SelectValue placeholder="Sélectionner la priorité" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Low">Basse</SelectItem>
-                    <SelectItem value="Medium">Moyenne</SelectItem>
-                    <SelectItem value="High">Haute</SelectItem>
-                    <SelectItem value="Critical">Critique</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="campagne">Campagne *</Label>
-                <Select name="campagne" required disabled={loading}>
-                  <SelectTrigger id="campagne">
-                    <SelectValue placeholder="Sélectionner la campagne" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ORANGE">ORANGE</SelectItem>
-                    <SelectItem value="YAS">YAS</SelectItem>
-                    <SelectItem value="EXPRESSO">EXPRESSO</SelectItem>
-                    <SelectItem value="CANAL">CANAL</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="border-t pt-6 space-y-4">
+              <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Informations personnelles</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -185,6 +153,21 @@ export default function FicheRetourMateriel() {
                     <Input id="demeurant" name="demeurant" required disabled={loading} />
                   </div>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="campagne">Campagne *</Label>
+                <Select name="campagne" required disabled={loading}>
+                  <SelectTrigger id="campagne">
+                    <SelectValue placeholder="Sélectionner la campagne" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ORANGE">ORANGE</SelectItem>
+                    <SelectItem value="YAS">YAS</SelectItem>
+                    <SelectItem value="EXPRESSO">EXPRESSO</SelectItem>
+                    <SelectItem value="CANAL">CANAL</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="border-t pt-6 space-y-4">
