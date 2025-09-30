@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Printer, Mail } from "lucide-react";
 import { toast } from "sonner";
+import pcciLogo from "@/assets/pcci-logo.png";
 
 export default function TicketDetail() {
   const { id } = useParams();
@@ -91,29 +92,49 @@ export default function TicketDetail() {
               page-break-inside: avoid;
               break-inside: avoid;
             }
-            .print-table {
-              width: 100%;
-              border-collapse: collapse;
+            .print-logo-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 20px;
+              border-bottom: 3px solid #1e40af;
+              margin-bottom: 30px;
             }
-            .print-table th,
-            .print-table td {
-              border: 1px solid #e5e7eb;
-              padding: 8px 12px;
-              text-align: left;
+            .print-logo {
+              max-height: 80px;
+              width: auto;
             }
-            .print-table th {
-              background-color: #f9fafb;
-              font-weight: 600;
-              width: 35%;
+            .print-info-box {
+              text-align: right;
             }
-            .print-table td {
-              background-color: white;
+            .print-section {
+              margin-bottom: 25px;
             }
-            .print-header {
-              text-align: center;
-              margin-bottom: 20px;
-              padding-bottom: 15px;
+            .print-section-title {
+              font-size: 14px;
+              font-weight: 700;
+              color: #1e40af;
               border-bottom: 2px solid #e5e7eb;
+              padding-bottom: 8px;
+              margin-bottom: 15px;
+              text-transform: uppercase;
+            }
+            .print-field {
+              display: flex;
+              margin-bottom: 12px;
+              padding: 8px;
+            }
+            .print-field:nth-child(even) {
+              background-color: #f9fafb;
+            }
+            .print-field-label {
+              font-weight: 600;
+              width: 40%;
+              color: #374151;
+            }
+            .print-field-value {
+              width: 60%;
+              color: #1f2937;
             }
             @page {
               size: A4;
@@ -140,166 +161,162 @@ export default function TicketDetail() {
         </div>
 
         <Card className="print-container">
-          <CardHeader className="print-header">
-            <div className="flex items-start justify-between print:block">
+          {/* En-tête avec logo (visible uniquement à l'impression) */}
+          <div className="hidden print:block print-logo-header">
+            <img src={pcciLogo} alt="Logo" className="print-logo" />
+            <div className="print-info-box">
+              <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '5px' }}>{ticket.title}</div>
+              <div style={{ fontSize: '14px', color: '#6b7280' }}>Code: {ticket.code}</div>
+              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '5px' }}>
+                {new Date(ticket.created_at).toLocaleDateString()}
+              </div>
+            </div>
+          </div>
+
+          {/* En-tête normal (visible à l'écran) */}
+          <CardHeader className="print:hidden">
+            <div className="flex items-start justify-between">
               <div>
-                <CardTitle className="text-2xl print:text-xl print:mb-2">{ticket.title}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-2 print:text-base print:font-semibold print:text-foreground">
+                <CardTitle className="text-2xl">{ticket.title}</CardTitle>
+                <p className="text-sm text-muted-foreground mt-2">
                   Code: {ticket.code}
                 </p>
               </div>
-              <Badge className="print:hidden">{ticket.status}</Badge>
+              <Badge>{ticket.status}</Badge>
             </div>
           </CardHeader>
           
-          <CardContent className="print:p-0">
-            <table className="w-full border-collapse">
-              <tbody>
-                {metadata.type && (
-                  <tr>
-                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                      Type de fiche
-                    </th>
-                    <td className="p-3 border">{metadata.type}</td>
-                  </tr>
-                )}
-
+          <CardContent className="print:p-5">
+            {/* Informations personnelles */}
+            {(metadata.prenom || metadata.nom || metadata.id_personnel || metadata.cni || metadata.demeurant) && (
+              <div className="print-section">
+                <div className="print-section-title">Informations Personnelles</div>
                 {metadata.prenom && (
-                  <tr>
-                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                      Prénom
-                    </th>
-                    <td className="p-3 border">{metadata.prenom}</td>
-                  </tr>
+                  <div className="print-field">
+                    <div className="print-field-label">Prénom</div>
+                    <div className="print-field-value">{metadata.prenom}</div>
+                  </div>
                 )}
-
                 {metadata.nom && (
-                  <tr>
-                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                      Nom
-                    </th>
-                    <td className="p-3 border">{metadata.nom}</td>
-                  </tr>
+                  <div className="print-field">
+                    <div className="print-field-label">Nom</div>
+                    <div className="print-field-value">{metadata.nom}</div>
+                  </div>
                 )}
-
                 {metadata.id_personnel && (
-                  <tr>
-                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                      ID Personnel
-                    </th>
-                    <td className="p-3 border">{metadata.id_personnel}</td>
-                  </tr>
+                  <div className="print-field">
+                    <div className="print-field-label">ID Personnel</div>
+                    <div className="print-field-value">{metadata.id_personnel}</div>
+                  </div>
                 )}
-
                 {metadata.cni && (
-                  <tr>
-                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                      CNI
-                    </th>
-                    <td className="p-3 border">{metadata.cni}</td>
-                  </tr>
+                  <div className="print-field">
+                    <div className="print-field-label">CNI</div>
+                    <div className="print-field-value">{metadata.cni}</div>
+                  </div>
                 )}
-
                 {metadata.demeurant && (
-                  <tr>
-                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                      Demeurant
-                    </th>
-                    <td className="p-3 border">{metadata.demeurant}</td>
-                  </tr>
+                  <div className="print-field">
+                    <div className="print-field-label">Demeurant</div>
+                    <div className="print-field-value">{metadata.demeurant}</div>
+                  </div>
                 )}
+              </div>
+            )}
 
-                {metadata.campagne && (
-                  <tr>
-                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                      Campagne
-                    </th>
-                    <td className="p-3 border">{metadata.campagne}</td>
-                  </tr>
-                )}
+            {/* Détails de la demande */}
+            <div className="print-section">
+              <div className="print-section-title">Détails de la Demande</div>
+              {metadata.type && (
+                <div className="print-field">
+                  <div className="print-field-label">Type de fiche</div>
+                  <div className="print-field-value">{metadata.type}</div>
+                </div>
+              )}
+              {metadata.campagne && (
+                <div className="print-field">
+                  <div className="print-field-label">Campagne</div>
+                  <div className="print-field-value">{metadata.campagne}</div>
+                </div>
+              )}
+              {metadata.type_mouvement && (
+                <div className="print-field">
+                  <div className="print-field-label">Type de mouvement</div>
+                  <div className="print-field-value">{metadata.type_mouvement}</div>
+                </div>
+              )}
+              <div className="print-field">
+                <div className="print-field-label">Description</div>
+                <div className="print-field-value" style={{ whiteSpace: 'pre-wrap' }}>{ticket.description}</div>
+              </div>
+              <div className="print-field">
+                <div className="print-field-label">Priorité</div>
+                <div className="print-field-value">{ticket.priority}</div>
+              </div>
+            </div>
 
-                {metadata.type_mouvement && (
-                  <tr>
-                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                      Type de mouvement
-                    </th>
-                    <td className="p-3 border">{metadata.type_mouvement}</td>
-                  </tr>
-                )}
-
+            {/* Équipement et matériel */}
+            {(metadata.nom_machine || metadata.place || metadata.numero_sim) && (
+              <div className="print-section">
+                <div className="print-section-title">Équipement et Matériel</div>
                 {metadata.nom_machine && (
-                  <tr>
-                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                      Nom Machine
-                    </th>
-                    <td className="p-3 border">{metadata.nom_machine}</td>
-                  </tr>
+                  <div className="print-field">
+                    <div className="print-field-label">Nom Machine</div>
+                    <div className="print-field-value">{metadata.nom_machine}</div>
+                  </div>
                 )}
-
                 {metadata.place && (
-                  <tr>
-                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                      Place
-                    </th>
-                    <td className="p-3 border">{metadata.place}</td>
-                  </tr>
+                  <div className="print-field">
+                    <div className="print-field-label">Place</div>
+                    <div className="print-field-value">{metadata.place}</div>
+                  </div>
                 )}
-
                 {metadata.numero_sim && (
-                  <tr>
-                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                      Numéro SIM
-                    </th>
-                    <td className="p-3 border">{metadata.numero_sim}</td>
-                  </tr>
+                  <div className="print-field">
+                    <div className="print-field-label">Numéro SIM</div>
+                    <div className="print-field-value">{metadata.numero_sim}</div>
+                  </div>
                 )}
+              </div>
+            )}
 
+            {/* Dates */}
+            {(metadata.date_depart || metadata.date_retour) && (
+              <div className="print-section">
+                <div className="print-section-title">Dates</div>
                 {metadata.date_depart && (
-                  <tr>
-                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                      Date de départ
-                    </th>
-                    <td className="p-3 border">
+                  <div className="print-field">
+                    <div className="print-field-label">Date de départ</div>
+                    <div className="print-field-value">
                       {new Date(metadata.date_depart).toLocaleDateString()}
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 )}
-
                 {metadata.date_retour && (
-                  <tr>
-                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                      Date de retour
-                    </th>
-                    <td className="p-3 border">
+                  <div className="print-field">
+                    <div className="print-field-label">Date de retour</div>
+                    <div className="print-field-value">
                       {new Date(metadata.date_retour).toLocaleDateString()}
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 )}
+              </div>
+            )}
 
-                <tr>
-                  <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                    Description
-                  </th>
-                  <td className="p-3 border whitespace-pre-wrap">{ticket.description}</td>
-                </tr>
-
-                <tr>
-                  <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                    Date de création
-                  </th>
-                  <td className="p-3 border">
-                    {new Date(ticket.created_at).toLocaleDateString()} à {new Date(ticket.created_at).toLocaleTimeString()}
-                  </td>
-                </tr>
-
-                <tr>
-                  <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
-                    Priorité
-                  </th>
-                  <td className="p-3 border">{ticket.priority}</td>
-                </tr>
-              </tbody>
-            </table>
+            {/* Informations système */}
+            <div className="print-section">
+              <div className="print-section-title">Informations Système</div>
+              <div className="print-field">
+                <div className="print-field-label">Date de création</div>
+                <div className="print-field-value">
+                  {new Date(ticket.created_at).toLocaleDateString()} à {new Date(ticket.created_at).toLocaleTimeString()}
+                </div>
+              </div>
+              <div className="print-field print:hidden">
+                <div className="print-field-label">Statut</div>
+                <div className="print-field-value">{ticket.status}</div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
