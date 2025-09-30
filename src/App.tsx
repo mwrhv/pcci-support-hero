@@ -10,6 +10,7 @@ import TicketsList from "./pages/TicketsList";
 import NewTicket from "./pages/NewTicket";
 import FicheRetourMateriel from "./pages/FicheRetourMateriel";
 import FicheDepartTeletravail from "./pages/FicheDepartTeletravail";
+import TicketDetail from "./pages/TicketDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/tickets" element={<TicketsList />} />
             <Route path="/tickets/new" element={<NewTicket />} />
+            <Route path="/tickets/:id" element={<TicketDetail />} />
             <Route path="/fiche-retour-materiel" element={<FicheRetourMateriel />} />
             <Route path="/fiche-depart-teletravail" element={<FicheDepartTeletravail />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
