@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,39 +12,26 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const ticketSchema = z.object({
+const ficheSchema = z.object({
   title: z.string().trim().min(5, { message: "Le titre doit contenir au moins 5 caractères" }).max(200),
   description: z.string().trim().min(10, { message: "La description doit contenir au moins 10 caractères" }),
   priority: z.enum(["Low", "Medium", "High", "Critical"]),
-  categoryId: z.string().uuid({ message: "Catégorie invalide" }),
+  prenom: z.string().trim().min(2, { message: "Le prénom est requis" }),
+  nom: z.string().trim().min(2, { message: "Le nom est requis" }),
+  cni: z.string().trim().min(1, { message: "Le CNI est requis" }),
+  demeurant: z.string().trim().min(1, { message: "Le demeurant est requis" }),
 });
 
-export default function NewTicket() {
+export default function FicheDepartTeletravail() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>("");
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      setUserId(user.id);
-
-      const { data: categoriesData } = await supabase
-        .from("categories")
-        .select("*")
-        .order("name");
-      setCategories(categoriesData || []);
-    } catch (error: any) {
-      toast.error("Erreur lors du chargement des données");
-      console.error(error);
-    }
-  };
+  useState(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setUserId(user.id);
+    });
+  });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -54,12 +41,24 @@ export default function NewTicket() {
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const priority = formData.get("priority") as string;
-    const categoryId = formData.get("categoryId") as string;
+    const prenom = formData.get("prenom") as string;
+    const nom = formData.get("nom") as string;
+    const cni = formData.get("cni") as string;
+    const demeurant = formData.get("demeurant") as string;
 
     try {
-      const validated = ticketSchema.parse({ 
-        title, description, priority, categoryId
+      const validated = ficheSchema.parse({ 
+        title, description, priority,
+        prenom, nom, cni, demeurant
       });
+
+      const metadata = {
+        type: "Fiche Départ Télétravail",
+        prenom: validated.prenom,
+        nom: validated.nom,
+        cni: validated.cni,
+        demeurant: validated.demeurant,
+      };
 
       const { data, error } = await supabase
         .from("tickets")
@@ -67,31 +66,29 @@ export default function NewTicket() {
           title: validated.title,
           description: validated.description,
           priority: validated.priority as any,
-          category_id: validated.categoryId,
           requester_id: userId,
           code: "",
-          metadata: {},
+          metadata,
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      // Create initial audit log
       await supabase.from("ticket_updates").insert({
         ticket_id: data.id,
         author_id: userId,
         type: "comment",
-        body: "Ticket créé",
+        body: "Fiche Départ Télétravail créée",
       });
 
-      toast.success("Ticket créé avec succès !");
+      toast.success("Fiche créée avec succès !");
       navigate(`/tickets/${data.id}`);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
       } else {
-        toast.error(error.message || "Erreur lors de la création du ticket");
+        toast.error(error.message || "Erreur lors de la création de la fiche");
         console.error(error);
       }
     } finally {
@@ -106,18 +103,18 @@ export default function NewTicket() {
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         <Button
           variant="ghost"
-          onClick={() => navigate("/tickets")}
+          onClick={() => navigate("/")}
           className="mb-6"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour aux tickets
+          Retour au tableau de bord
         </Button>
 
         <Card>
           <CardHeader>
-            <CardTitle>Créer un nouveau ticket</CardTitle>
+            <CardTitle>Fiche Départ Télétravail</CardTitle>
             <CardDescription>
-              Décrivez votre problème ou demande d'assistance
+              Créer une fiche de départ en télétravail
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -127,7 +124,7 @@ export default function NewTicket() {
                 <Input
                   id="title"
                   name="title"
-                  placeholder="Résumé du problème"
+                  placeholder="Résumé de la demande télétravail"
                   required
                   disabled={loading}
                 />
@@ -138,43 +135,51 @@ export default function NewTicket() {
                 <Textarea
                   id="description"
                   name="description"
-                  placeholder="Décrivez en détail votre problème ou demande..."
-                  rows={6}
+                  placeholder="Décrivez en détail votre demande de télétravail..."
+                  rows={4}
                   required
                   disabled={loading}
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="priority">Priorité *</Label>
-                  <Select name="priority" defaultValue="Medium" required disabled={loading}>
-                    <SelectTrigger id="priority">
-                      <SelectValue placeholder="Sélectionner la priorité" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Low">Basse</SelectItem>
-                      <SelectItem value="Medium">Moyenne</SelectItem>
-                      <SelectItem value="High">Haute</SelectItem>
-                      <SelectItem value="Critical">Critique</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="priority">Priorité *</Label>
+                <Select name="priority" defaultValue="Medium" required disabled={loading}>
+                  <SelectTrigger id="priority">
+                    <SelectValue placeholder="Sélectionner la priorité" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Low">Basse</SelectItem>
+                    <SelectItem value="Medium">Moyenne</SelectItem>
+                    <SelectItem value="High">Haute</SelectItem>
+                    <SelectItem value="Critical">Critique</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="categoryId">Catégorie *</Label>
-                  <Select name="categoryId" required disabled={loading}>
-                    <SelectTrigger id="categoryId">
-                      <SelectValue placeholder="Sélectionner une catégorie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="border-t pt-6 space-y-4">
+                <h3 className="font-semibold text-lg">Informations personnelles</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="prenom">Prénom *</Label>
+                    <Input id="prenom" name="prenom" required disabled={loading} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="nom">Nom *</Label>
+                    <Input id="nom" name="nom" required disabled={loading} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cni">CNI *</Label>
+                    <Input id="cni" name="cni" required disabled={loading} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="demeurant">Demeurant *</Label>
+                    <Input id="demeurant" name="demeurant" required disabled={loading} />
+                  </div>
                 </div>
               </div>
 
@@ -182,13 +187,13 @@ export default function NewTicket() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate("/tickets")}
+                  onClick={() => navigate("/")}
                   disabled={loading}
                 >
                   Annuler
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  {loading ? "Création..." : "Créer le ticket"}
+                  {loading ? "Création..." : "Créer la fiche"}
                 </Button>
               </div>
             </form>

@@ -147,10 +147,18 @@ export default function Dashboard() {
               Bienvenue, {profile?.full_name}
             </p>
           </div>
-          <Button onClick={() => navigate("/tickets/new")} size="lg">
-            <Plus className="mr-2 h-4 w-4" />
-            Nouveau ticket
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => navigate("/fiche-retour-materiel")} variant="outline">
+              Fiche Retour Matériel
+            </Button>
+            <Button onClick={() => navigate("/fiche-depart-teletravail")} variant="outline">
+              Fiche Départ Télétravail
+            </Button>
+            <Button onClick={() => navigate("/tickets/new")} size="lg">
+              <Plus className="mr-2 h-4 w-4" />
+              Nouveau ticket
+            </Button>
+          </div>
         </div>
 
         {/* Metrics Cards */}
