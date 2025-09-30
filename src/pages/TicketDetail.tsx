@@ -91,13 +91,33 @@ export default function TicketDetail() {
               page-break-inside: avoid;
               break-inside: avoid;
             }
-            .print-section {
-              page-break-inside: avoid;
-              break-inside: avoid;
+            .print-table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            .print-table th,
+            .print-table td {
+              border: 1px solid #e5e7eb;
+              padding: 8px 12px;
+              text-align: left;
+            }
+            .print-table th {
+              background-color: #f9fafb;
+              font-weight: 600;
+              width: 35%;
+            }
+            .print-table td {
+              background-color: white;
+            }
+            .print-header {
+              text-align: center;
+              margin-bottom: 20px;
+              padding-bottom: 15px;
+              border-bottom: 2px solid #e5e7eb;
             }
             @page {
               size: A4;
-              margin: 1cm;
+              margin: 1.5cm;
             }
           }
         `}</style>
@@ -120,141 +140,166 @@ export default function TicketDetail() {
         </div>
 
         <Card className="print-container">
-          <CardHeader>
-            <div className="flex items-start justify-between">
+          <CardHeader className="print-header">
+            <div className="flex items-start justify-between print:block">
               <div>
-                <CardTitle className="text-2xl">{ticket.title}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-2">Code: {ticket.code}</p>
+                <CardTitle className="text-2xl print:text-xl print:mb-2">{ticket.title}</CardTitle>
+                <p className="text-sm text-muted-foreground mt-2 print:text-base print:font-semibold print:text-foreground">
+                  Code: {ticket.code}
+                </p>
               </div>
               <Badge className="print:hidden">{ticket.status}</Badge>
             </div>
           </CardHeader>
           
-          <CardContent className="space-y-6 print:space-y-3 print:text-sm">
-            {metadata.type && (
-              <div className="pb-4 border-b print:pb-2 print-section">
-                <h3 className="font-semibold mb-4 print:mb-2">Type de fiche</h3>
-                <p className="text-sm">{metadata.type}</p>
-              </div>
-            )}
+          <CardContent className="print:p-0">
+            <table className="w-full border-collapse print-table">
+              <tbody>
+                {metadata.type && (
+                  <tr>
+                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                      Type de fiche
+                    </th>
+                    <td className="p-3 border">{metadata.type}</td>
+                  </tr>
+                )}
 
-            {(metadata.prenom || metadata.nom) && (
-              <div className="pb-4 border-b print:pb-2 print-section">
-                <h3 className="font-semibold mb-4 print:mb-2">Informations personnelles</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm print:gap-2">
-                  {metadata.prenom && (
-                    <div>
-                      <span className="text-muted-foreground">Prénom:</span>
-                      <p className="font-medium">{metadata.prenom}</p>
-                    </div>
-                  )}
-                  {metadata.nom && (
-                    <div>
-                      <span className="text-muted-foreground">Nom:</span>
-                      <p className="font-medium">{metadata.nom}</p>
-                    </div>
-                  )}
-                  {metadata.id_personnel && (
-                    <div>
-                      <span className="text-muted-foreground">ID:</span>
-                      <p className="font-medium">{metadata.id_personnel}</p>
-                    </div>
-                  )}
-                  {metadata.cni && (
-                    <div>
-                      <span className="text-muted-foreground">CNI:</span>
-                      <p className="font-medium">{metadata.cni}</p>
-                    </div>
-                  )}
-                  {metadata.demeurant && (
-                    <div>
-                      <span className="text-muted-foreground">Demeurant:</span>
-                      <p className="font-medium">{metadata.demeurant}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+                {metadata.prenom && (
+                  <tr>
+                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                      Prénom
+                    </th>
+                    <td className="p-3 border">{metadata.prenom}</td>
+                  </tr>
+                )}
 
-            {metadata.campagne && (
-              <div className="pb-4 border-b print:pb-2 print-section">
-                <h3 className="font-semibold mb-4 print:mb-2">Informations campagne</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm print:gap-2">
-                  <div>
-                    <span className="text-muted-foreground">Campagne:</span>
-                    <p className="font-medium">{metadata.campagne}</p>
-                  </div>
-                  {metadata.type_mouvement && (
-                    <div>
-                      <span className="text-muted-foreground">Type de mouvement:</span>
-                      <p className="font-medium">{metadata.type_mouvement}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+                {metadata.nom && (
+                  <tr>
+                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                      Nom
+                    </th>
+                    <td className="p-3 border">{metadata.nom}</td>
+                  </tr>
+                )}
 
-            {(metadata.nom_machine || metadata.place) && (
-              <div className="pb-4 border-b print:pb-2 print-section">
-                <h3 className="font-semibold mb-4 print:mb-2">Informations matériel</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm print:gap-2">
-                  {metadata.nom_machine && (
-                    <div>
-                      <span className="text-muted-foreground">Nom Machine:</span>
-                      <p className="font-medium">{metadata.nom_machine}</p>
-                    </div>
-                  )}
-                  {metadata.place && (
-                    <div>
-                      <span className="text-muted-foreground">Place:</span>
-                      <p className="font-medium">{metadata.place}</p>
-                    </div>
-                  )}
-                  {metadata.numero_sim && (
-                    <div>
-                      <span className="text-muted-foreground">Numéro SIM:</span>
-                      <p className="font-medium">{metadata.numero_sim}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+                {metadata.id_personnel && (
+                  <tr>
+                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                      ID Personnel
+                    </th>
+                    <td className="p-3 border">{metadata.id_personnel}</td>
+                  </tr>
+                )}
 
-            {(metadata.date_depart || metadata.date_retour) && (
-              <div className="pb-4 border-b print:pb-2 print-section">
-                <h3 className="font-semibold mb-4 print:mb-2">Dates</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm print:gap-2">
-                  {metadata.date_depart && (
-                    <div>
-                      <span className="text-muted-foreground">Date de départ:</span>
-                      <p className="font-medium">{new Date(metadata.date_depart).toLocaleDateString()}</p>
-                    </div>
-                  )}
-                  {metadata.date_retour && (
-                    <div>
-                      <span className="text-muted-foreground">Date de retour:</span>
-                      <p className="font-medium">{new Date(metadata.date_retour).toLocaleDateString()}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+                {metadata.cni && (
+                  <tr>
+                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                      CNI
+                    </th>
+                    <td className="p-3 border">{metadata.cni}</td>
+                  </tr>
+                )}
 
-            <div className="print-section">
-              <h3 className="font-semibold mb-4 print:mb-2">Description</h3>
-              <p className="text-sm whitespace-pre-wrap">{ticket.description}</p>
-            </div>
+                {metadata.demeurant && (
+                  <tr>
+                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                      Demeurant
+                    </th>
+                    <td className="p-3 border">{metadata.demeurant}</td>
+                  </tr>
+                )}
 
-            <div className="grid grid-cols-2 gap-4 text-sm pt-4 border-t print:pt-2 print:gap-2 print-section">
-              <div>
-                <span className="text-muted-foreground">Créé le:</span>
-                <p className="font-medium">{new Date(ticket.created_at).toLocaleString()}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Priorité:</span>
-                <p className="font-medium">{ticket.priority}</p>
-              </div>
-            </div>
+                {metadata.campagne && (
+                  <tr>
+                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                      Campagne
+                    </th>
+                    <td className="p-3 border">{metadata.campagne}</td>
+                  </tr>
+                )}
+
+                {metadata.type_mouvement && (
+                  <tr>
+                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                      Type de mouvement
+                    </th>
+                    <td className="p-3 border">{metadata.type_mouvement}</td>
+                  </tr>
+                )}
+
+                {metadata.nom_machine && (
+                  <tr>
+                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                      Nom Machine
+                    </th>
+                    <td className="p-3 border">{metadata.nom_machine}</td>
+                  </tr>
+                )}
+
+                {metadata.place && (
+                  <tr>
+                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                      Place
+                    </th>
+                    <td className="p-3 border">{metadata.place}</td>
+                  </tr>
+                )}
+
+                {metadata.numero_sim && (
+                  <tr>
+                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                      Numéro SIM
+                    </th>
+                    <td className="p-3 border">{metadata.numero_sim}</td>
+                  </tr>
+                )}
+
+                {metadata.date_depart && (
+                  <tr>
+                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                      Date de départ
+                    </th>
+                    <td className="p-3 border">
+                      {new Date(metadata.date_depart).toLocaleDateString()}
+                    </td>
+                  </tr>
+                )}
+
+                {metadata.date_retour && (
+                  <tr>
+                    <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                      Date de retour
+                    </th>
+                    <td className="p-3 border">
+                      {new Date(metadata.date_retour).toLocaleDateString()}
+                    </td>
+                  </tr>
+                )}
+
+                <tr>
+                  <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                    Description
+                  </th>
+                  <td className="p-3 border whitespace-pre-wrap">{ticket.description}</td>
+                </tr>
+
+                <tr>
+                  <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                    Date de création
+                  </th>
+                  <td className="p-3 border">
+                    {new Date(ticket.created_at).toLocaleDateString()} à {new Date(ticket.created_at).toLocaleTimeString()}
+                  </td>
+                </tr>
+
+                <tr>
+                  <th className="bg-muted p-3 text-left font-semibold border print:bg-gray-100">
+                    Priorité
+                  </th>
+                  <td className="p-3 border">{ticket.priority}</td>
+                </tr>
+              </tbody>
+            </table>
           </CardContent>
         </Card>
       </div>
