@@ -91,9 +91,54 @@ export default function TicketDetail() {
               page-break-inside: avoid;
               break-inside: avoid;
             }
+            .print-minimal-header {
+              text-align: center;
+              padding: 40px 20px;
+              border-bottom: 1px solid #e5e7eb;
+            }
+            .print-minimal-title {
+              font-size: 24px;
+              font-weight: 300;
+              letter-spacing: 0.5px;
+              margin-bottom: 12px;
+            }
+            .print-minimal-code {
+              font-size: 13px;
+              color: #6b7280;
+              font-weight: 400;
+            }
+            .print-minimal-body {
+              padding: 50px 60px;
+            }
+            .print-minimal-field {
+              margin-bottom: 35px;
+              border-bottom: 1px solid #f3f4f6;
+              padding-bottom: 20px;
+            }
+            .print-minimal-label {
+              font-size: 11px;
+              text-transform: uppercase;
+              letter-spacing: 1.5px;
+              color: #9ca3af;
+              margin-bottom: 8px;
+              font-weight: 500;
+            }
+            .print-minimal-value {
+              font-size: 15px;
+              color: #1f2937;
+              line-height: 1.7;
+              font-weight: 300;
+            }
+            .print-minimal-footer {
+              text-align: center;
+              padding: 30px;
+              border-top: 1px solid #e5e7eb;
+              font-size: 11px;
+              color: #9ca3af;
+            }
             @page {
               size: A4;
-              margin: 1cm;
+              margin: 1.5cm;
             }
           }
         `}</style>
@@ -115,134 +160,178 @@ export default function TicketDetail() {
           </div>
         </div>
 
-        <Card className="print-container">
-          <CardHeader>
-            <div className="flex items-start justify-between print:block">
+        <Card className="print-container border-none shadow-none">
+          {/* En-tête minimal (visible uniquement à l'impression) */}
+          <div className="hidden print:block print-minimal-header">
+            <div className="print-minimal-title">{ticket.title}</div>
+            <div className="print-minimal-code">{ticket.code}</div>
+          </div>
+
+          {/* En-tête normal (visible à l'écran) */}
+          <CardHeader className="print:hidden">
+            <div className="flex items-start justify-between">
               <div>
-                <CardTitle className="text-2xl print:text-xl print:mb-2">{ticket.title}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-2 print:text-base print:font-semibold print:text-foreground">
-                  Code: {ticket.code}
+                <CardTitle className="text-2xl font-light tracking-wide">{ticket.title}</CardTitle>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {ticket.code}
                 </p>
               </div>
-              <Badge className="print:hidden">{ticket.status}</Badge>
+              <Badge>{ticket.status}</Badge>
             </div>
           </CardHeader>
           
-          <CardContent>
-            <div className="space-y-4">
-              {metadata.type && (
-                <div className="flex border-b pb-2">
-                  <span className="font-semibold w-1/3">Type de fiche:</span>
-                  <span className="w-2/3">{metadata.type}</span>
+          <CardContent className="print:p-0 print-minimal-body space-y-8">
+            {metadata.type && (
+              <div className="print-minimal-field">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                  Type de fiche
                 </div>
-              )}
-
-              {metadata.prenom && (
-                <div className="flex border-b pb-2">
-                  <span className="font-semibold w-1/3">Prénom:</span>
-                  <span className="w-2/3">{metadata.prenom}</span>
-                </div>
-              )}
-
-              {metadata.nom && (
-                <div className="flex border-b pb-2">
-                  <span className="font-semibold w-1/3">Nom:</span>
-                  <span className="w-2/3">{metadata.nom}</span>
-                </div>
-              )}
-
-              {metadata.id_personnel && (
-                <div className="flex border-b pb-2">
-                  <span className="font-semibold w-1/3">ID Personnel:</span>
-                  <span className="w-2/3">{metadata.id_personnel}</span>
-                </div>
-              )}
-
-              {metadata.cni && (
-                <div className="flex border-b pb-2">
-                  <span className="font-semibold w-1/3">CNI:</span>
-                  <span className="w-2/3">{metadata.cni}</span>
-                </div>
-              )}
-
-              {metadata.demeurant && (
-                <div className="flex border-b pb-2">
-                  <span className="font-semibold w-1/3">Demeurant:</span>
-                  <span className="w-2/3">{metadata.demeurant}</span>
-                </div>
-              )}
-
-              {metadata.campagne && (
-                <div className="flex border-b pb-2">
-                  <span className="font-semibold w-1/3">Campagne:</span>
-                  <span className="w-2/3">{metadata.campagne}</span>
-                </div>
-              )}
-
-              {metadata.type_mouvement && (
-                <div className="flex border-b pb-2">
-                  <span className="font-semibold w-1/3">Type de mouvement:</span>
-                  <span className="w-2/3">{metadata.type_mouvement}</span>
-                </div>
-              )}
-
-              {metadata.nom_machine && (
-                <div className="flex border-b pb-2">
-                  <span className="font-semibold w-1/3">Nom Machine:</span>
-                  <span className="w-2/3">{metadata.nom_machine}</span>
-                </div>
-              )}
-
-              {metadata.place && (
-                <div className="flex border-b pb-2">
-                  <span className="font-semibold w-1/3">Place:</span>
-                  <span className="w-2/3">{metadata.place}</span>
-                </div>
-              )}
-
-              {metadata.numero_sim && (
-                <div className="flex border-b pb-2">
-                  <span className="font-semibold w-1/3">Numéro SIM:</span>
-                  <span className="w-2/3">{metadata.numero_sim}</span>
-                </div>
-              )}
-
-              {metadata.date_depart && (
-                <div className="flex border-b pb-2">
-                  <span className="font-semibold w-1/3">Date de départ:</span>
-                  <span className="w-2/3">
-                    {new Date(metadata.date_depart).toLocaleDateString()}
-                  </span>
-                </div>
-              )}
-
-              {metadata.date_retour && (
-                <div className="flex border-b pb-2">
-                  <span className="font-semibold w-1/3">Date de retour:</span>
-                  <span className="w-2/3">
-                    {new Date(metadata.date_retour).toLocaleDateString()}
-                  </span>
-                </div>
-              )}
-
-              <div className="flex border-b pb-2">
-                <span className="font-semibold w-1/3">Description:</span>
-                <span className="w-2/3 whitespace-pre-wrap">{ticket.description}</span>
+                <div className="text-base font-light print-minimal-value">{metadata.type}</div>
               </div>
+            )}
 
-              <div className="flex border-b pb-2">
-                <span className="font-semibold w-1/3">Date de création:</span>
-                <span className="w-2/3">
-                  {new Date(ticket.created_at).toLocaleDateString()} à {new Date(ticket.created_at).toLocaleTimeString()}
-                </span>
+            {metadata.prenom && (
+              <div className="print-minimal-field">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                  Prénom
+                </div>
+                <div className="text-base font-light print-minimal-value">{metadata.prenom}</div>
               </div>
+            )}
 
-              <div className="flex border-b pb-2">
-                <span className="font-semibold w-1/3">Priorité:</span>
-                <span className="w-2/3">{ticket.priority}</span>
+            {metadata.nom && (
+              <div className="print-minimal-field">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                  Nom
+                </div>
+                <div className="text-base font-light print-minimal-value">{metadata.nom}</div>
+              </div>
+            )}
+
+            {metadata.id_personnel && (
+              <div className="print-minimal-field">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                  ID Personnel
+                </div>
+                <div className="text-base font-light print-minimal-value">{metadata.id_personnel}</div>
+              </div>
+            )}
+
+            {metadata.cni && (
+              <div className="print-minimal-field">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                  CNI
+                </div>
+                <div className="text-base font-light print-minimal-value">{metadata.cni}</div>
+              </div>
+            )}
+
+            {metadata.demeurant && (
+              <div className="print-minimal-field">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                  Demeurant
+                </div>
+                <div className="text-base font-light print-minimal-value">{metadata.demeurant}</div>
+              </div>
+            )}
+
+            {metadata.campagne && (
+              <div className="print-minimal-field">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                  Campagne
+                </div>
+                <div className="text-base font-light print-minimal-value">{metadata.campagne}</div>
+              </div>
+            )}
+
+            {metadata.type_mouvement && (
+              <div className="print-minimal-field">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                  Type de mouvement
+                </div>
+                <div className="text-base font-light print-minimal-value">{metadata.type_mouvement}</div>
+              </div>
+            )}
+
+            {metadata.nom_machine && (
+              <div className="print-minimal-field">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                  Nom Machine
+                </div>
+                <div className="text-base font-light print-minimal-value">{metadata.nom_machine}</div>
+              </div>
+            )}
+
+            {metadata.place && (
+              <div className="print-minimal-field">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                  Place
+                </div>
+                <div className="text-base font-light print-minimal-value">{metadata.place}</div>
+              </div>
+            )}
+
+            {metadata.numero_sim && (
+              <div className="print-minimal-field">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                  Numéro SIM
+                </div>
+                <div className="text-base font-light print-minimal-value">{metadata.numero_sim}</div>
+              </div>
+            )}
+
+            {metadata.date_depart && (
+              <div className="print-minimal-field">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                  Date de départ
+                </div>
+                <div className="text-base font-light print-minimal-value">
+                  {new Date(metadata.date_depart).toLocaleDateString()}
+                </div>
+              </div>
+            )}
+
+            {metadata.date_retour && (
+              <div className="print-minimal-field">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                  Date de retour
+                </div>
+                <div className="text-base font-light print-minimal-value">
+                  {new Date(metadata.date_retour).toLocaleDateString()}
+                </div>
+              </div>
+            )}
+
+            <div className="print-minimal-field">
+              <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                Description
+              </div>
+              <div className="text-base font-light whitespace-pre-wrap leading-relaxed print-minimal-value">
+                {ticket.description}
+              </div>
+            </div>
+
+            <div className="print-minimal-field">
+              <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                Priorité
+              </div>
+              <div className="text-base font-light print-minimal-value">{ticket.priority}</div>
+            </div>
+
+            <div className="print-minimal-field print:border-b-0">
+              <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 print-minimal-label">
+                Date de création
+              </div>
+              <div className="text-base font-light print-minimal-value">
+                {new Date(ticket.created_at).toLocaleDateString()} à {new Date(ticket.created_at).toLocaleTimeString()}
               </div>
             </div>
           </CardContent>
+
+          {/* Pied de page minimal (visible uniquement à l'impression) */}
+          <div className="hidden print:block print-minimal-footer">
+            Document généré le {new Date().toLocaleDateString()}
+          </div>
         </Card>
       </div>
     </div>
