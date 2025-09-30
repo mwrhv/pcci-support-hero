@@ -15,6 +15,7 @@ import { z } from "zod";
 const ficheSchema = z.object({
   description: z.string().trim().min(10, { message: "La description doit contenir au moins 10 caractères" }),
   campagne: z.enum(["ORANGE", "YAS", "EXPRESSO", "CANAL"], { message: "La campagne est requise" }),
+  type_mouvement: z.enum(["Démission", "Retour sur site"], { message: "Le type de mouvement est requis" }),
   prenom: z.string().trim().min(2, { message: "Le prénom est requis" }),
   nom: z.string().trim().min(2, { message: "Le nom est requis" }),
   cni: z.string().trim().min(1, { message: "Le CNI est requis" }),
@@ -42,6 +43,7 @@ export default function FicheDepartTeletravail() {
     const formData = new FormData(e.currentTarget);
     const description = formData.get("description") as string;
     const campagne = formData.get("campagne") as string;
+    const type_mouvement = formData.get("type_mouvement") as string;
     const prenom = formData.get("prenom") as string;
     const nom = formData.get("nom") as string;
     const cni = formData.get("cni") as string;
@@ -52,7 +54,7 @@ export default function FicheDepartTeletravail() {
 
     try {
       const validated = ficheSchema.parse({ 
-        description, campagne,
+        description, campagne, type_mouvement,
         prenom, nom, cni, demeurant, nom_machine, place, numero_sim 
       });
 
@@ -61,6 +63,7 @@ export default function FicheDepartTeletravail() {
       const metadata = {
         type: "Fiche Départ Télétravail",
         campagne: validated.campagne,
+        type_mouvement: validated.type_mouvement,
         prenom: validated.prenom,
         nom: validated.nom,
         cni: validated.cni,
@@ -166,6 +169,19 @@ export default function FicheDepartTeletravail() {
                     <SelectItem value="YAS">YAS</SelectItem>
                     <SelectItem value="EXPRESSO">EXPRESSO</SelectItem>
                     <SelectItem value="CANAL">CANAL</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="type_mouvement">Type de mouvement *</Label>
+                <Select name="type_mouvement" required disabled={loading}>
+                  <SelectTrigger id="type_mouvement">
+                    <SelectValue placeholder="Sélectionner le type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Démission">Démission</SelectItem>
+                    <SelectItem value="Retour sur site">Retour sur site</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
