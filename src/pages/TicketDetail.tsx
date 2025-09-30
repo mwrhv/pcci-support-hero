@@ -95,8 +95,34 @@ export default function TicketDetail() {
               background: white;
               min-height: 100vh;
             }
+            .print-modern-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 25px 40px;
+              border-bottom: 3px solid #000000;
+              background: white;
+            }
+            .print-logo {
+              max-height: 70px;
+              width: auto;
+            }
+            .print-header-info {
+              text-align: right;
+            }
+            .print-title {
+              font-size: 22px;
+              font-weight: 700;
+              color: #000000;
+              margin-bottom: 5px;
+            }
+            .print-subtitle {
+              font-size: 13px;
+              color: #000000;
+              font-weight: 400;
+            }
             .print-modern-body {
-              padding: 40px;
+              padding: 30px 40px 40px 40px;
               background: white;
             }
             .print-cards-grid {
@@ -159,6 +185,15 @@ export default function TicketDetail() {
         </div>
 
         <Card className="print-container border-none shadow-none">
+          {/* En-tête moderne (visible uniquement à l'impression) */}
+          <div className="hidden print:block print-modern-header">
+            <img src={pcciLogo} alt="Logo" className="print-logo" />
+            <div className="print-header-info">
+              <div className="print-title">{ticket.title}</div>
+              <div className="print-subtitle">Réf: {ticket.code} | {new Date(ticket.created_at).toLocaleDateString('fr-FR')}</div>
+            </div>
+          </div>
+
           {/* En-tête normal (visible à l'écran) */}
           <CardHeader className="print:hidden">
             <div className="flex items-start justify-between">
