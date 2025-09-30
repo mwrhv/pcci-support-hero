@@ -80,7 +80,27 @@ export default function TicketDetail() {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-8 max-w-4xl print:py-4">
+        <style>{`
+          @media print {
+            body {
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+            .print-container {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            .print-section {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            @page {
+              size: A4;
+              margin: 1cm;
+            }
+          }
+        `}</style>
         <div className="flex items-center justify-between mb-6 print:hidden">
           <Button variant="ghost" onClick={() => navigate(-1)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -99,7 +119,7 @@ export default function TicketDetail() {
           </div>
         </div>
 
-        <Card>
+        <Card className="print-container">
           <CardHeader>
             <div className="flex items-start justify-between">
               <div>
@@ -110,18 +130,18 @@ export default function TicketDetail() {
             </div>
           </CardHeader>
           
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 print:space-y-3 print:text-sm">
             {metadata.type && (
-              <div className="pb-4 border-b">
-                <h3 className="font-semibold mb-4">Type de fiche</h3>
+              <div className="pb-4 border-b print:pb-2 print-section">
+                <h3 className="font-semibold mb-4 print:mb-2">Type de fiche</h3>
                 <p className="text-sm">{metadata.type}</p>
               </div>
             )}
 
             {(metadata.prenom || metadata.nom) && (
-              <div className="pb-4 border-b">
-                <h3 className="font-semibold mb-4">Informations personnelles</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="pb-4 border-b print:pb-2 print-section">
+                <h3 className="font-semibold mb-4 print:mb-2">Informations personnelles</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm print:gap-2">
                   {metadata.prenom && (
                     <div>
                       <span className="text-muted-foreground">Prénom:</span>
@@ -157,9 +177,9 @@ export default function TicketDetail() {
             )}
 
             {metadata.campagne && (
-              <div className="pb-4 border-b">
-                <h3 className="font-semibold mb-4">Informations campagne</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="pb-4 border-b print:pb-2 print-section">
+                <h3 className="font-semibold mb-4 print:mb-2">Informations campagne</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm print:gap-2">
                   <div>
                     <span className="text-muted-foreground">Campagne:</span>
                     <p className="font-medium">{metadata.campagne}</p>
@@ -175,9 +195,9 @@ export default function TicketDetail() {
             )}
 
             {(metadata.nom_machine || metadata.place) && (
-              <div className="pb-4 border-b">
-                <h3 className="font-semibold mb-4">Informations matériel</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="pb-4 border-b print:pb-2 print-section">
+                <h3 className="font-semibold mb-4 print:mb-2">Informations matériel</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm print:gap-2">
                   {metadata.nom_machine && (
                     <div>
                       <span className="text-muted-foreground">Nom Machine:</span>
@@ -201,9 +221,9 @@ export default function TicketDetail() {
             )}
 
             {(metadata.date_depart || metadata.date_retour) && (
-              <div className="pb-4 border-b">
-                <h3 className="font-semibold mb-4">Dates</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="pb-4 border-b print:pb-2 print-section">
+                <h3 className="font-semibold mb-4 print:mb-2">Dates</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm print:gap-2">
                   {metadata.date_depart && (
                     <div>
                       <span className="text-muted-foreground">Date de départ:</span>
@@ -220,12 +240,12 @@ export default function TicketDetail() {
               </div>
             )}
 
-            <div>
-              <h3 className="font-semibold mb-4">Description</h3>
+            <div className="print-section">
+              <h3 className="font-semibold mb-4 print:mb-2">Description</h3>
               <p className="text-sm whitespace-pre-wrap">{ticket.description}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-sm pt-4 border-t">
+            <div className="grid grid-cols-2 gap-4 text-sm pt-4 border-t print:pt-2 print:gap-2 print-section">
               <div>
                 <span className="text-muted-foreground">Créé le:</span>
                 <p className="font-medium">{new Date(ticket.created_at).toLocaleString()}</p>
