@@ -20,6 +20,9 @@ const ficheSchema = z.object({
   nom: z.string().trim().min(2, { message: "Le nom est requis" }),
   cni: z.string().trim().min(1, { message: "Le CNI est requis" }),
   demeurant: z.string().trim().min(1, { message: "Le demeurant est requis" }),
+  nom_machine: z.string().trim().min(1, { message: "Le nom de la machine est requis" }),
+  place: z.string().trim().min(1, { message: "La place est requise" }),
+  numero_sim: z.string().optional(),
 });
 
 export default function FicheDepartTeletravail() {
@@ -45,11 +48,14 @@ export default function FicheDepartTeletravail() {
     const nom = formData.get("nom") as string;
     const cni = formData.get("cni") as string;
     const demeurant = formData.get("demeurant") as string;
+    const nom_machine = formData.get("nom_machine") as string;
+    const place = formData.get("place") as string;
+    const numero_sim = formData.get("numero_sim") as string;
 
     try {
       const validated = ficheSchema.parse({ 
         title, description, priority,
-        prenom, nom, cni, demeurant
+        prenom, nom, cni, demeurant, nom_machine, place, numero_sim 
       });
 
       const metadata = {
@@ -58,6 +64,9 @@ export default function FicheDepartTeletravail() {
         nom: validated.nom,
         cni: validated.cni,
         demeurant: validated.demeurant,
+        nom_machine: validated.nom_machine,
+        place: validated.place,
+        ...(validated.numero_sim && { numero_sim: validated.numero_sim }),
       };
 
       const { data, error } = await supabase
@@ -179,6 +188,27 @@ export default function FicheDepartTeletravail() {
                   <div className="space-y-2">
                     <Label htmlFor="demeurant">Demeurant *</Label>
                     <Input id="demeurant" name="demeurant" required disabled={loading} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-6 space-y-4">
+                <h3 className="font-semibold text-lg">Informations matériel</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nom_machine">Nom Machine *</Label>
+                    <Input id="nom_machine" name="nom_machine" required disabled={loading} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="place">Place *</Label>
+                    <Input id="place" name="place" required disabled={loading} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="numero_sim">Numéro SIM</Label>
+                    <Input id="numero_sim" name="numero_sim" disabled={loading} />
                   </div>
                 </div>
               </div>
