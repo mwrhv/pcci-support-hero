@@ -153,7 +153,7 @@ export default function TicketDetail() {
           </CardHeader>
           
           <CardContent className="print:p-0">
-            <table className="w-full border-collapse print-table">
+            <table className="w-full border-collapse">
               <tbody>
                 {metadata.type && (
                   <tr>
