@@ -11,6 +11,7 @@ import { Navbar } from "@/components/Navbar";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { FicheActions } from "@/components/FicheActions";
 
 const ficheSchema = z.object({
   description: z.string().trim().min(10, { message: "La description doit contenir au moins 10 caractères" }),
@@ -30,6 +31,8 @@ export default function FicheRetourMateriel() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string>("");
+  const [showActions, setShowActions] = useState(false);
+  const [createdFiche, setCreatedFiche] = useState<any>(null);
 
   useState(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -98,8 +101,8 @@ export default function FicheRetourMateriel() {
         body: "Fiche Retour Matériel créée",
       });
 
-      toast.success("Fiche créée avec succès !");
-      navigate(`/tickets/${data.id}`);
+      setCreatedFiche(data);
+      setShowActions(true);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
@@ -244,6 +247,17 @@ export default function FicheRetourMateriel() {
           </CardContent>
         </Card>
       </div>
+
+      {createdFiche && (
+        <FicheActions
+          isOpen={showActions}
+          onClose={() => {
+            setShowActions(false);
+            navigate(`/tickets/${createdFiche.id}`);
+          }}
+          ficheData={createdFiche}
+        />
+      )}
     </div>
   );
 }
