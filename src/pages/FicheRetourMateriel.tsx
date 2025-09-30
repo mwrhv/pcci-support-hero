@@ -13,7 +13,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const ficheSchema = z.object({
-  title: z.string().trim().min(5, { message: "Le titre doit contenir au moins 5 caractères" }).max(200),
   description: z.string().trim().min(10, { message: "La description doit contenir au moins 10 caractères" }),
   priority: z.enum(["Low", "Medium", "High", "Critical"]),
   campagne: z.enum(["ORANGE", "YAS", "EXPRESSO", "CANAL"], { message: "La campagne est requise" }),
@@ -42,7 +41,6 @@ export default function FicheRetourMateriel() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const priority = formData.get("priority") as string;
     const campagne = formData.get("campagne") as string;
@@ -56,9 +54,11 @@ export default function FicheRetourMateriel() {
 
     try {
       const validated = ficheSchema.parse({ 
-        title, description, priority, campagne,
+        description, priority, campagne,
         prenom, nom, cni, demeurant, nom_machine, place, numero_sim 
       });
+
+      const title = `Retour Matériel - ${validated.prenom} ${validated.nom} - ${validated.campagne}`;
 
       const metadata = {
         type: "Fiche Retour Matériel",
@@ -75,7 +75,7 @@ export default function FicheRetourMateriel() {
       const { data, error } = await supabase
         .from("tickets")
         .insert({
-          title: validated.title,
+          title: title,
           description: validated.description,
           priority: validated.priority as any,
           requester_id: userId,
@@ -131,29 +131,6 @@ export default function FicheRetourMateriel() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="title">Titre *</Label>
-                <Input
-                  id="title"
-                  name="title"
-                  placeholder="Résumé du retour matériel"
-                  required
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  placeholder="Décrivez en détail le retour matériel..."
-                  rows={4}
-                  required
-                  disabled={loading}
-                />
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="priority">Priorité *</Label>
                 <Select name="priority" defaultValue="Medium" required disabled={loading}>
@@ -229,6 +206,18 @@ export default function FicheRetourMateriel() {
                     <Input id="numero_sim" name="numero_sim" disabled={loading} />
                   </div>
                 </div>
+              </div>
+
+              <div className="border-t pt-6 space-y-2">
+                <Label htmlFor="description">Description *</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  placeholder="Décrivez en détail le retour matériel..."
+                  rows={4}
+                  required
+                  disabled={loading}
+                />
               </div>
 
               <div className="flex justify-end space-x-4">
