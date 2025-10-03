@@ -37,15 +37,18 @@ export default function FichesDirectory() {
 
   const fetchData = async () => {
     try {
-      // Fetch categories
+      const allowedCategories = ["Démission", "Retour Matériel", "Départ Télétravail"];
+      
+      // Fetch only allowed categories
       const { data: categoriesData } = await supabase
         .from("categories")
         .select("*")
+        .in("name", allowedCategories)
         .order("name");
       
       if (categoriesData) setCategories(categoriesData);
 
-      // Fetch fiches (tickets with metadata)
+      // Fetch fiches (tickets with metadata) only for allowed categories
       const { data, error } = await supabase
         .from("tickets")
         .select(`
@@ -59,6 +62,7 @@ export default function FichesDirectory() {
           profiles!tickets_requester_id_fkey(full_name)
         `)
         .not("metadata", "is", null)
+        .in("categories.name", allowedCategories)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
