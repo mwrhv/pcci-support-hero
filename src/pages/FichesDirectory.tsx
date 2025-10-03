@@ -85,8 +85,27 @@ export default function FichesDirectory() {
       fiche.metadata?.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       fiche.metadata?.nom?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesCategory = 
-      selectedCategory === "all" || fiche.category_id === selectedCategory;
+    const matchesCategory = selectedCategory === "all" || (() => {
+      // Si la fiche a un category_id, vérifier s'il correspond
+      if (fiche.category_id === selectedCategory) return true;
+      
+      // Sinon, vérifier le metadata.type pour les fiches sans category_id
+      if (!fiche.category_id && fiche.metadata?.type) {
+        const selectedCat = categories.find(cat => cat.id === selectedCategory);
+        if (!selectedCat) return false;
+        
+        // Mapper les noms de catégories aux types de metadata
+        const typeMapping: Record<string, string> = {
+          "Démission": "Fiche Démission",
+          "Retour Matériel": "Fiche Retour Matériel",
+          "Départ Télétravail": "Fiche Départ Télétravail"
+        };
+        
+        return fiche.metadata.type === typeMapping[selectedCat.name];
+      }
+      
+      return false;
+    })();
 
     const matchesCampagne = 
       selectedCampagne === "all" || fiche.metadata?.campagne === selectedCampagne;
