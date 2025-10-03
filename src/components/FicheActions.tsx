@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Printer, Mail, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { PrintPreview } from "./PrintPreview";
 
 interface FicheActionsProps {
   isOpen: boolean;
@@ -15,6 +17,7 @@ interface FicheActionsProps {
 }
 
 export function FicheActions({ isOpen, onClose, ficheData }: FicheActionsProps) {
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
   const formatFicheContent = () => {
     const { code, title, metadata, description } = ficheData;
     
@@ -43,44 +46,8 @@ ${description}
   };
 
   const handlePrint = () => {
-    const content = formatFicheContent();
-    const printWindow = window.open('', '_blank');
-    
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Impression - ${ficheData.code}</title>
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                padding: 40px;
-                line-height: 1.6;
-              }
-              h1 {
-                color: #333;
-                border-bottom: 2px solid #333;
-                padding-bottom: 10px;
-              }
-              h2 {
-                color: #666;
-                margin-top: 20px;
-              }
-              pre {
-                white-space: pre-wrap;
-                font-family: Arial, sans-serif;
-              }
-            </style>
-          </head>
-          <body>
-            <pre>${content}</pre>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-      toast.success("Aperçu d'impression ouvert");
-    }
+    setShowPrintPreview(true);
+    toast.success("Aperçu d'impression ouvert");
   };
 
   const handleEmail = () => {
@@ -101,51 +68,59 @@ ${description}
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Fiche créée avec succès !</DialogTitle>
-          <DialogDescription>
-            Code: {ficheData.code}
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="flex flex-col gap-3 mt-4">
-          <Button
-            onClick={handlePrint}
-            variant="outline"
-            className="w-full justify-start"
-          >
-            <Printer className="mr-2 h-4 w-4" />
-            Imprimer la fiche
-          </Button>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Fiche créée avec succès !</DialogTitle>
+            <DialogDescription>
+              Code: {ficheData.code}
+            </DialogDescription>
+          </DialogHeader>
           
-          <Button
-            onClick={handleEmail}
-            variant="outline"
-            className="w-full justify-start"
-          >
-            <Mail className="mr-2 h-4 w-4" />
-            Partager par Email
-          </Button>
-          
-          <Button
-            onClick={handleWhatsApp}
-            variant="outline"
-            className="w-full justify-start"
-          >
-            <Share2 className="mr-2 h-4 w-4" />
-            Partager par WhatsApp
-          </Button>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button
+              onClick={handlePrint}
+              variant="outline"
+              className="w-full justify-start"
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Imprimer la fiche
+            </Button>
+            
+            <Button
+              onClick={handleEmail}
+              variant="outline"
+              className="w-full justify-start"
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              Partager par Email
+            </Button>
+            
+            <Button
+              onClick={handleWhatsApp}
+              variant="outline"
+              className="w-full justify-start"
+            >
+              <Share2 className="mr-2 h-4 w-4" />
+              Partager par WhatsApp
+            </Button>
 
-          <Button
-            onClick={onClose}
-            className="w-full mt-2"
-          >
-            Fermer
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+            <Button
+              onClick={onClose}
+              className="w-full mt-2"
+            >
+              Fermer
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <PrintPreview
+        isOpen={showPrintPreview}
+        onClose={() => setShowPrintPreview(false)}
+        ficheData={ficheData}
+      />
+    </>
   );
 }
