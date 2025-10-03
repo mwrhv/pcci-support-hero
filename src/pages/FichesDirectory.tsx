@@ -65,7 +65,7 @@ export default function FichesDirectory() {
           profiles!tickets_requester_id_fkey(full_name)
         `)
         .not("metadata", "is", null)
-        .in("category_id", categoryIds)
+        .or(`category_id.in.(${categoryIds.join(',')}),and(category_id.is.null,metadata->>type.in.(Fiche Retour Matériel,Fiche Départ Télétravail,Fiche Démission))`)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
