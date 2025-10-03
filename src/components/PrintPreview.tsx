@@ -111,24 +111,6 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
                 <p className="text-base font-semibold text-gray-900">{metadata.type_mouvement}</p>
               </div>
             )}
-
-            {ficheData.status && (
-              <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
-                  Statut
-                </p>
-                <p className="text-base font-semibold text-gray-900">{ficheData.status}</p>
-              </div>
-            )}
-
-            {ficheData.priority && (
-              <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
-                  Priorité
-                </p>
-                <p className="text-base font-semibold text-gray-900">{ficheData.priority}</p>
-              </div>
-            )}
           </div>
 
           {/* Informations personnelles */}
