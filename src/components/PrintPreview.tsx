@@ -1,6 +1,7 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Printer, X } from "lucide-react";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import pcciLogo from "@/assets/pcci-logo.png";
 
 interface PrintPreviewProps {
@@ -26,27 +27,35 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+        <VisuallyHidden>
+          <DialogTitle>Aperçu avant impression</DialogTitle>
+        </VisuallyHidden>
         <style>{`
           @media print {
             body * {
-              visibility: hidden;
+              visibility: hidden !important;
             }
             .print-area, .print-area * {
-              visibility: visible;
+              visibility: visible !important;
             }
             .print-area {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
-              background: white;
+              position: fixed !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              background: white !important;
+              padding: 20px !important;
             }
             .no-print {
               display: none !important;
             }
             @page {
               size: A4;
-              margin: 1cm;
+              margin: 1.5cm;
+            }
+            img {
+              max-width: 100% !important;
+              height: auto !important;
             }
           }
         `}</style>
