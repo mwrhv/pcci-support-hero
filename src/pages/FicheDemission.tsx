@@ -16,6 +16,7 @@ import { FicheActions } from "@/components/FicheActions";
 const ficheSchema = z.object({
   description: z.string().trim().min(10, { message: "La description doit contenir au moins 10 caractères" }),
   campagne: z.enum(["ORANGE", "YAS", "EXPRESSO", "CANAL"], { message: "La campagne est requise" }),
+  fonction: z.enum(["CONSEILLER COMMERCIAL", "CONSEILLERE COMMERCIALE", "SUPERVISEUR", "TECHNICIEN"], { message: "La fonction est requise" }),
   prenom: z.string().trim().min(2, { message: "Le prénom est requis" }),
   nom: z.string().trim().min(2, { message: "Le nom est requis" }),
   id_personnel: z.string().trim().min(1, { message: "L'ID est requis" }),
@@ -45,6 +46,7 @@ export default function FicheDemission() {
     const formData = new FormData(e.currentTarget);
     const description = formData.get("description") as string;
     const campagne = formData.get("campagne") as string;
+    const fonction = formData.get("fonction") as string;
     const prenom = formData.get("prenom") as string;
     const nom = formData.get("nom") as string;
     const id_personnel = formData.get("id_personnel") as string;
@@ -55,7 +57,7 @@ export default function FicheDemission() {
 
     try {
       const validated = ficheSchema.parse({ 
-        description, campagne, prenom, nom, id_personnel, 
+        description, campagne, fonction, prenom, nom, id_personnel, 
         cni, demeurant, date_demission, motif 
       });
 
@@ -71,6 +73,7 @@ export default function FicheDemission() {
       const metadata = {
         type: "Fiche Démission",
         campagne: validated.campagne,
+        fonction: validated.fonction,
         prenom: validated.prenom,
         nom: validated.nom,
         id_personnel: validated.id_personnel,
@@ -171,19 +174,36 @@ export default function FicheDemission() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="campagne">Campagne *</Label>
-                <Select name="campagne" required disabled={loading}>
-                  <SelectTrigger id="campagne">
-                    <SelectValue placeholder="Sélectionner la campagne" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ORANGE">ORANGE</SelectItem>
-                    <SelectItem value="YAS">YAS</SelectItem>
-                    <SelectItem value="EXPRESSO">EXPRESSO</SelectItem>
-                    <SelectItem value="CANAL">CANAL</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="campagne">Campagne *</Label>
+                  <Select name="campagne" required disabled={loading}>
+                    <SelectTrigger id="campagne">
+                      <SelectValue placeholder="Sélectionner la campagne" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ORANGE">ORANGE</SelectItem>
+                      <SelectItem value="YAS">YAS</SelectItem>
+                      <SelectItem value="EXPRESSO">EXPRESSO</SelectItem>
+                      <SelectItem value="CANAL">CANAL</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fonction">Fonction *</Label>
+                  <Select name="fonction" required disabled={loading}>
+                    <SelectTrigger id="fonction">
+                      <SelectValue placeholder="Sélectionner la fonction" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CONSEILLER COMMERCIAL">CONSEILLER COMMERCIAL</SelectItem>
+                      <SelectItem value="CONSEILLERE COMMERCIALE">CONSEILLERE COMMERCIALE</SelectItem>
+                      <SelectItem value="SUPERVISEUR">SUPERVISEUR</SelectItem>
+                      <SelectItem value="TECHNICIEN">TECHNICIEN</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="border-t pt-6 space-y-4">
