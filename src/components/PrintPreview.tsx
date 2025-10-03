@@ -37,6 +37,7 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
             }
             .print-area, .print-area * {
               visibility: visible !important;
+              color: black !important;
             }
             .print-area {
               position: fixed !important;
@@ -46,6 +47,20 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
               background: white !important;
               padding: 20px !important;
             }
+            .print-area h1,
+            .print-area h2,
+            .print-area h3,
+            .print-area p,
+            .print-area span,
+            .print-area div {
+              color: black !important;
+            }
+            .print-area .border {
+              border-color: #333 !important;
+            }
+            .print-area .bg-gray-50 {
+              background-color: #f9f9f9 !important;
+            }
             .no-print {
               display: none !important;
             }
@@ -54,7 +69,7 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
               margin: 1.5cm;
             }
             img {
-              max-width: 100% !important;
+              max-width: 150px !important;
               height: auto !important;
             }
           }
