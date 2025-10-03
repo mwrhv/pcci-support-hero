@@ -48,6 +48,9 @@ export default function FichesDirectory() {
       
       if (categoriesData) setCategories(categoriesData);
 
+      // Get category IDs for filtering
+      const categoryIds = categoriesData?.map(cat => cat.id) || [];
+
       // Fetch fiches (tickets with metadata) only for allowed categories
       const { data, error } = await supabase
         .from("tickets")
@@ -62,7 +65,7 @@ export default function FichesDirectory() {
           profiles!tickets_requester_id_fkey(full_name)
         `)
         .not("metadata", "is", null)
-        .in("categories.name", allowedCategories)
+        .in("category_id", categoryIds)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
