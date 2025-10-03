@@ -147,12 +147,18 @@ export default function Dashboard() {
               Bienvenue, {profile?.full_name}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={() => navigate("/fiches")} variant="outline">
+              Répertoire des Fiches
+            </Button>
             <Button onClick={() => navigate("/fiche-retour-materiel")} variant="outline">
-              Fiche Retour Matériel
+              Retour Matériel
             </Button>
             <Button onClick={() => navigate("/fiche-depart-teletravail")} variant="outline">
-              Fiche Départ Télétravail
+              Départ Télétravail
+            </Button>
+            <Button onClick={() => navigate("/fiche-demission")} variant="outline">
+              Démission
             </Button>
             <Button onClick={() => navigate("/tickets/new")} size="lg">
               <Plus className="mr-2 h-4 w-4" />

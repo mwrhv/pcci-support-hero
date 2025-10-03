@@ -10,6 +10,8 @@ import TicketsList from "./pages/TicketsList";
 import NewTicket from "./pages/NewTicket";
 import FicheRetourMateriel from "./pages/FicheRetourMateriel";
 import FicheDepartTeletravail from "./pages/FicheDepartTeletravail";
+import FicheDemission from "./pages/FicheDemission";
+import FichesDirectory from "./pages/FichesDirectory";
 import TicketDetail from "./pages/TicketDetail";
 import NotFound from "./pages/NotFound";
 
@@ -30,6 +32,8 @@ const App = () => (
             <Route path="/tickets/:id" element={<TicketDetail />} />
             <Route path="/fiche-retour-materiel" element={<FicheRetourMateriel />} />
             <Route path="/fiche-depart-teletravail" element={<FicheDepartTeletravail />} />
+            <Route path="/fiche-demission" element={<FicheDemission />} />
+            <Route path="/fiches" element={<FichesDirectory />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

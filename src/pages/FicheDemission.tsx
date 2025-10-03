@@ -16,18 +16,16 @@ import { FicheActions } from "@/components/FicheActions";
 const ficheSchema = z.object({
   description: z.string().trim().min(10, { message: "La description doit contenir au moins 10 caractères" }),
   campagne: z.enum(["ORANGE", "YAS", "EXPRESSO", "CANAL"], { message: "La campagne est requise" }),
-  type_mouvement: z.enum(["Démission", "Retour sur site"], { message: "Le type de mouvement est requis" }),
   prenom: z.string().trim().min(2, { message: "Le prénom est requis" }),
   nom: z.string().trim().min(2, { message: "Le nom est requis" }),
   id_personnel: z.string().trim().min(1, { message: "L'ID est requis" }),
   cni: z.string().trim().min(1, { message: "Le CNI est requis" }),
   demeurant: z.string().trim().min(1, { message: "Le demeurant est requis" }),
-  nom_machine: z.string().trim().min(1, { message: "Le nom de la machine est requis" }),
-  place: z.string().trim().min(1, { message: "La place est requise" }),
-  numero_sim: z.string().optional(),
+  date_demission: z.string().min(1, { message: "La date de démission est requise" }),
+  motif: z.string().trim().min(10, { message: "Le motif doit contenir au moins 10 caractères" }),
 });
 
-export default function FicheRetourMateriel() {
+export default function FicheDemission() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string>("");
@@ -47,43 +45,39 @@ export default function FicheRetourMateriel() {
     const formData = new FormData(e.currentTarget);
     const description = formData.get("description") as string;
     const campagne = formData.get("campagne") as string;
-    const type_mouvement = formData.get("type_mouvement") as string;
     const prenom = formData.get("prenom") as string;
     const nom = formData.get("nom") as string;
     const id_personnel = formData.get("id_personnel") as string;
     const cni = formData.get("cni") as string;
     const demeurant = formData.get("demeurant") as string;
-    const nom_machine = formData.get("nom_machine") as string;
-    const place = formData.get("place") as string;
-    const numero_sim = formData.get("numero_sim") as string;
+    const date_demission = formData.get("date_demission") as string;
+    const motif = formData.get("motif") as string;
 
     try {
       const validated = ficheSchema.parse({ 
-        description, campagne, type_mouvement,
-        prenom, nom, id_personnel, cni, demeurant, nom_machine, place, numero_sim 
+        description, campagne, prenom, nom, id_personnel, 
+        cni, demeurant, date_demission, motif 
       });
 
-      const title = `Retour Matériel - ${validated.prenom} ${validated.nom} - ${validated.campagne}`;
+      const title = `Démission - ${validated.prenom} ${validated.nom} - ${validated.campagne}`;
 
-      // Get category ID for "Retour Matériel"
+      // Get category ID for "Démission"
       const { data: categoryData } = await supabase
         .from("categories")
         .select("id")
-        .eq("name", "Retour Matériel")
+        .eq("name", "Démission")
         .single();
 
       const metadata = {
-        type: "Fiche Retour Matériel",
+        type: "Fiche Démission",
         campagne: validated.campagne,
-        type_mouvement: validated.type_mouvement,
         prenom: validated.prenom,
         nom: validated.nom,
         id_personnel: validated.id_personnel,
         cni: validated.cni,
         demeurant: validated.demeurant,
-        nom_machine: validated.nom_machine,
-        place: validated.place,
-        ...(validated.numero_sim && { numero_sim: validated.numero_sim }),
+        date_demission: validated.date_demission,
+        motif: validated.motif,
       };
 
       const { data, error } = await supabase
@@ -91,7 +85,7 @@ export default function FicheRetourMateriel() {
         .insert({
           title: title,
           description: validated.description,
-          priority: "Medium" as any,
+          priority: "High" as any,
           requester_id: userId,
           category_id: categoryData?.id,
           code: "",
@@ -106,7 +100,7 @@ export default function FicheRetourMateriel() {
         ticket_id: data.id,
         author_id: userId,
         type: "comment",
-        body: "Fiche Retour Matériel créée",
+        body: "Fiche Démission créée",
       });
 
       setCreatedFiche(data);
@@ -139,9 +133,9 @@ export default function FicheRetourMateriel() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Fiche Retour Matériel</CardTitle>
+            <CardTitle>Fiche Démission</CardTitle>
             <CardDescription>
-              Créer une fiche de retour de matériel
+              Créer une fiche de démission d'employé
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -161,7 +155,7 @@ export default function FicheRetourMateriel() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="id_personnel">ID *</Label>
+                    <Label htmlFor="id_personnel">ID Personnel *</Label>
                     <Input id="id_personnel" name="id_personnel" required disabled={loading} />
                   </div>
 
@@ -192,46 +186,39 @@ export default function FicheRetourMateriel() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="type_mouvement">Type de mouvement *</Label>
-                <Select name="type_mouvement" required disabled={loading}>
-                  <SelectTrigger id="type_mouvement">
-                    <SelectValue placeholder="Sélectionner le type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Démission">Démission</SelectItem>
-                    <SelectItem value="Retour sur site">Retour sur site</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="border-t pt-6 space-y-4">
-                <h3 className="font-semibold text-lg">Informations matériel</h3>
+                <h3 className="font-semibold text-lg">Informations de démission</h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nom_machine">Nom Machine *</Label>
-                    <Input id="nom_machine" name="nom_machine" required disabled={loading} />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date_demission">Date de démission *</Label>
+                  <Input 
+                    id="date_demission" 
+                    name="date_demission" 
+                    type="date" 
+                    required 
+                    disabled={loading} 
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="place">Place *</Label>
-                    <Input id="place" name="place" required disabled={loading} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="numero_sim">Numéro SIM</Label>
-                    <Input id="numero_sim" name="numero_sim" disabled={loading} />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="motif">Motif de la démission *</Label>
+                  <Textarea
+                    id="motif"
+                    name="motif"
+                    placeholder="Expliquez le motif de la démission..."
+                    rows={3}
+                    required
+                    disabled={loading}
+                  />
                 </div>
               </div>
 
               <div className="border-t pt-6 space-y-2">
-                <Label htmlFor="description">Description *</Label>
+                <Label htmlFor="description">Description complémentaire *</Label>
                 <Textarea
                   id="description"
                   name="description"
-                  placeholder="Décrivez en détail le retour matériel..."
+                  placeholder="Ajoutez toute information complémentaire..."
                   rows={4}
                   required
                   disabled={loading}

@@ -65,6 +65,13 @@ export default function FicheDepartTeletravail() {
 
       const title = `Départ Télétravail - ${validated.prenom} ${validated.nom} - ${validated.campagne}`;
 
+      // Get category ID for "Départ Télétravail"
+      const { data: categoryData } = await supabase
+        .from("categories")
+        .select("id")
+        .eq("name", "Départ Télétravail")
+        .single();
+
       const metadata = {
         type: "Fiche Départ Télétravail",
         campagne: validated.campagne,
@@ -86,6 +93,7 @@ export default function FicheDepartTeletravail() {
           description: validated.description,
           priority: "Medium" as any,
           requester_id: userId,
+          category_id: categoryData?.id,
           code: "",
           metadata,
         })
