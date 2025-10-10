@@ -6,27 +6,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { User, Mail, Briefcase, Users as UsersIcon, Loader2 } from "lucide-react";
+import { User, Mail, Briefcase, Shield, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+type AppRole = 'agent' | 'supervisor' | 'admin';
 
 export default function Profile() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [userRole, setUserRole] = useState<AppRole>('agent');
   const [profile, setProfile] = useState({
     full_name: "",
     email: "",
     department: "",
-    gender: "",
     avatar_url: "",
   });
 
@@ -55,9 +51,19 @@ export default function Profile() {
           full_name: data.full_name || "",
           email: data.email || "",
           department: data.department || "",
-          gender: data.gender || "",
           avatar_url: data.avatar_url || "",
         });
+      }
+
+      // Fetch user role from user_roles table
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (roleData) {
+        setUserRole(roleData.role as AppRole);
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -84,7 +90,6 @@ export default function Profile() {
         .update({
           full_name: profile.full_name,
           department: profile.department,
-          gender: profile.gender,
         })
         .eq("id", user.id);
 
@@ -185,23 +190,27 @@ export default function Profile() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="gender" className="flex items-center gap-2">
-                  <UsersIcon className="h-4 w-4" />
-                  Genre
+                <Label htmlFor="role" className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Type de Profil
                 </Label>
-                <Select
-                  value={profile.gender}
-                  onValueChange={(value) => setProfile({ ...profile, gender: value })}
-                >
-                  <SelectTrigger id="gender">
-                    <SelectValue placeholder="Sélectionnez votre genre" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Masculin">Masculin</SelectItem>
-                    <SelectItem value="Féminin">Féminin</SelectItem>
-                    <SelectItem value="Autre">Autre</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center h-10 px-3 py-2 border border-input bg-muted rounded-md">
+                  <Badge 
+                    variant={userRole === 'admin' ? 'default' : 'secondary'}
+                    className={
+                      userRole === 'admin' 
+                        ? 'bg-red-100 text-red-800' 
+                        : userRole === 'supervisor'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }
+                  >
+                    {userRole === 'admin' ? 'Administrateur' : userRole === 'supervisor' ? 'Superviseur' : 'Agent'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Seul un administrateur peut modifier votre type de profil
+                </p>
               </div>
 
               <div className="space-y-2">
