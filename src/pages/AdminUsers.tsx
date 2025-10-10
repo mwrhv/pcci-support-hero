@@ -13,7 +13,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Users, Loader2 } from "lucide-react";
+import { Shield, Users, Loader2, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type AppRole = 'agent' | 'supervisor' | 'admin';
 
@@ -30,6 +41,7 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -43,6 +55,8 @@ export default function AdminUsers() {
       navigate("/auth");
       return;
     }
+
+    setCurrentUserId(user.id);
 
     const { data: roles } = await supabase
       .from("user_roles")
@@ -165,6 +179,56 @@ export default function AdminUsers() {
     }
   };
 
+  const deleteUser = async (userId: string) => {
+    if (userId === currentUserId) {
+      toast({
+        title: "Action impossible",
+        description: "Vous ne pouvez pas supprimer votre propre compte",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("No active session");
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete user');
+      }
+
+      toast({
+        title: "Utilisateur supprimé",
+        description: "Le compte a été supprimé avec succès",
+      });
+
+      fetchUsers();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Impossible de supprimer l'utilisateur",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getRoleBadgeColor = (role: AppRole) => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800';
@@ -251,13 +315,45 @@ export default function AdminUsers() {
                         </Badge>
                       </td>
                       <td className="py-3 px-4">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleUserStatus(user.id, user.is_active)}
-                        >
-                          {user.is_active ? "Désactiver" : "Activer"}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleUserStatus(user.id, user.is_active)}
+                          >
+                            {user.is_active ? "Désactiver" : "Activer"}
+                          </Button>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                disabled={user.id === currentUserId}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Supprimer le compte ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Cette action est irréversible. Toutes les données de l'utilisateur 
+                                  <strong> {user.full_name} ({user.email}) </strong> seront définitivement supprimées.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteUser(user.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Supprimer
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </td>
                     </tr>
                   ))}
