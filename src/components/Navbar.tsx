@@ -18,6 +18,7 @@ import pcciLogo from "@/assets/pcci-logo.png";
 export const Navbar = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -29,6 +30,16 @@ export const Navbar = () => {
           .eq("id", user.id)
           .single();
         setProfile(data);
+
+        // Check if user is admin from user_roles table
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .single();
+        
+        setIsAdmin(!!roleData);
       }
     };
     
@@ -88,10 +99,10 @@ export const Navbar = () => {
                   <User className="mr-2 h-4 w-4" />
                   Profil
                 </DropdownMenuItem>
-                {profile?.role === "admin" && (
-                  <DropdownMenuItem onClick={() => navigate("/admin")}>
+                {isAdmin && (
+                  <DropdownMenuItem onClick={() => navigate("/admin/users")}>
                     <Settings className="mr-2 h-4 w-4" />
-                    Administration
+                    Gestion des Utilisateurs
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />

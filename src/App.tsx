@@ -13,6 +13,7 @@ import FicheDepartTeletravail from "./pages/FicheDepartTeletravail";
 import FicheDemission from "./pages/FicheDemission";
 import FichesDirectory from "./pages/FichesDirectory";
 import TicketDetail from "./pages/TicketDetail";
+import AdminUsers from "./pages/AdminUsers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/fiche-depart-teletravail" element={<FicheDepartTeletravail />} />
             <Route path="/fiche-demission" element={<FicheDemission />} />
             <Route path="/fiches" element={<FichesDirectory />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
