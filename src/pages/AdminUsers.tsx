@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Users, Loader2, Trash2 } from "lucide-react";
+import { Shield, Users, Loader2, Trash2, KeyRound } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -229,6 +229,45 @@ export default function AdminUsers() {
     }
   };
 
+  const resetUserPassword = async (userId: string, userEmail: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("No active session");
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reset-user-password`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to reset password');
+      }
+
+      toast({
+        title: "Email envoyé",
+        description: `Un email de réinitialisation a été envoyé à ${userEmail}`,
+      });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Impossible de réinitialiser le mot de passe",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getRoleBadgeColor = (role: AppRole) => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800';
@@ -324,12 +363,22 @@ export default function AdminUsers() {
                             {user.is_active ? "Désactiver" : "Activer"}
                           </Button>
                           
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => resetUserPassword(user.id, user.email)}
+                            title="Réinitialiser le mot de passe"
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                          
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
                                 variant="destructive"
                                 size="sm"
                                 disabled={user.id === currentUserId}
+                                title="Supprimer l'utilisateur"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
