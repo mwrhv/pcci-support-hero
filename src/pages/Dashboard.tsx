@@ -179,7 +179,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/tickets?status=New")}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Nouveaux</CardTitle>
               <Clock className="h-4 w-4 text-primary" />
@@ -189,7 +189,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/tickets?status=In_Progress")}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">En cours</CardTitle>
               <AlertTriangle className="h-4 w-4 text-warning" />
@@ -199,7 +199,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/tickets?status=Resolved")}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Résolus</CardTitle>
               <CheckCircle2 className="h-4 w-4 text-success" />
@@ -209,7 +209,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow border-accent">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer border-accent" onClick={() => navigate("/tickets?overdue=true")}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">En retard SLA</CardTitle>
               <XCircle className="h-4 w-4 text-accent" />

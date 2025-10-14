@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,15 +12,17 @@ import { toast } from "sonner";
 
 export default function TicketsList() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [overdueOnly, setOverdueOnly] = useState(searchParams.get("overdue") === "true");
 
   useEffect(() => {
     fetchTickets();
-  }, [statusFilter, priorityFilter]);
+  }, [statusFilter, priorityFilter, overdueOnly]);
 
   const fetchTickets = async () => {
     try {
@@ -44,6 +46,12 @@ export default function TicketsList() {
 
       if (priorityFilter !== "all") {
         query = query.eq("priority", priorityFilter as any);
+      }
+
+      if (overdueOnly) {
+        query = query
+          .lt("due_at", new Date().toISOString())
+          .not("status", "in", '("Resolved","Closed","Canceled")');
       }
 
       const { data, error } = await query;
