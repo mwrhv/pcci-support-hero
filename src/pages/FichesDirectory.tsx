@@ -117,7 +117,17 @@ export default function FichesDirectory() {
   const stats = {
     total: fiches.length,
     byCategory: categories.reduce((acc, cat) => {
-      acc[cat.name] = fiches.filter(f => f.category_id === cat.id).length;
+      // Mapper les noms de catégories aux types de metadata
+      const typeMapping: Record<string, string> = {
+        "Démission": "Fiche Démission",
+        "Retour Matériel": "Fiche Retour Matériel",
+        "Départ Télétravail": "Fiche Départ Télétravail"
+      };
+      
+      acc[cat.name] = fiches.filter(f => 
+        f.category_id === cat.id || 
+        (!f.category_id && f.metadata?.type === typeMapping[cat.name])
+      ).length;
       return acc;
     }, {} as Record<string, number>),
     byCampagne: ["ORANGE", "YAS", "EXPRESSO", "CANAL"].reduce((acc, camp) => {
