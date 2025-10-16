@@ -100,10 +100,16 @@ export const Navbar = () => {
                   Profil
                 </DropdownMenuItem>
                 {isAdmin && (
-                  <DropdownMenuItem onClick={() => navigate("/admin/users")}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Gestion des Utilisateurs
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem onClick={() => navigate("/admin/users")}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Gestion des Utilisateurs
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/admin/database")}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Paramètres Base de Données
+                    </DropdownMenuItem>
+                  </>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
