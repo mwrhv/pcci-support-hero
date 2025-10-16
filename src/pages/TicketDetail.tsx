@@ -178,7 +178,7 @@ export default function TicketDetail() {
           </Button>
           
           <div className="flex gap-2">
-            {ticket.status === "New" && !ticket.assignee_id && (
+            {ticket.status === "New" && !ticket.assignee_id && currentUser && currentUser.id !== ticket.requester_id && (
               <Button 
                 variant="default" 
                 size="sm" 
