@@ -494,6 +494,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      log_login_attempt: {
+        Args: { ip_address?: string; success: boolean; user_email: string }
+        Returns: undefined
+      }
       set_limit: {
         Args: { "": number }
         Returns: number
