@@ -16,6 +16,12 @@ interface PrintPreviewProps {
     description: string;
     status?: string;
     priority?: string;
+    assignee?: {
+      id: string;
+      full_name: string;
+      email: string;
+      department?: string;
+    } | null;
   };
 }
 
@@ -185,6 +191,31 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
                   <div className="border border-gray-200 rounded p-3">
                     <p className="text-xs font-semibold text-gray-600 mb-1">Motif</p>
                     <p className="text-sm text-gray-900 whitespace-pre-wrap">{metadata.motif}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Informations de prise en charge */}
+          {ficheData.assignee && (
+            <div className="mb-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b border-gray-300">
+                Pris en charge par
+              </h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="border border-gray-200 rounded p-3">
+                  <p className="text-xs font-semibold text-gray-600 mb-1">Nom complet</p>
+                  <p className="text-sm text-gray-900">{ficheData.assignee.full_name}</p>
+                </div>
+                <div className="border border-gray-200 rounded p-3">
+                  <p className="text-xs font-semibold text-gray-600 mb-1">Email</p>
+                  <p className="text-sm text-gray-900">{ficheData.assignee.email}</p>
+                </div>
+                {ficheData.assignee.department && (
+                  <div className="border border-gray-200 rounded p-3">
+                    <p className="text-xs font-semibold text-gray-600 mb-1">Fonction</p>
+                    <p className="text-sm text-gray-900">{ficheData.assignee.department}</p>
                   </div>
                 )}
               </div>

@@ -36,7 +36,7 @@ export default function TicketDetail() {
           .select(`
             *,
             requester:profiles!tickets_requester_id_fkey(id, full_name, email),
-            assignee:profiles!tickets_assignee_id_fkey(id, full_name, email)
+            assignee:profiles!tickets_assignee_id_fkey(id, full_name, email, department)
           `)
           .eq("id", id)
           .maybeSingle();
@@ -94,7 +94,7 @@ export default function TicketDetail() {
         .select(`
           *,
           requester:profiles!tickets_requester_id_fkey(id, full_name, email),
-          assignee:profiles!tickets_assignee_id_fkey(id, full_name, email)
+          assignee:profiles!tickets_assignee_id_fkey(id, full_name, email, department)
         `)
         .eq("id", ticket.id)
         .single();
@@ -133,7 +133,7 @@ export default function TicketDetail() {
         .select(`
           *,
           requester:profiles!tickets_requester_id_fkey(id, full_name, email),
-          assignee:profiles!tickets_assignee_id_fkey(id, full_name, email)
+          assignee:profiles!tickets_assignee_id_fkey(id, full_name, email, department)
         `)
         .eq("id", ticket.id)
         .single();
@@ -394,6 +394,7 @@ export default function TicketDetail() {
           description: ticket.description,
           status: ticket.status,
           priority: ticket.priority,
+          assignee: ticket.assignee,
         }}
       />
     </div>
