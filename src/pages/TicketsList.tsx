@@ -194,8 +194,9 @@ export default function TicketsList() {
                   >
                     <div className="flex items-start justify-between">
                       <div className="space-y-2 flex-1">
+                        <p className="text-lg font-semibold">{ticket.title}</p>
                         <div className="flex items-center gap-3">
-                          <p className="font-semibold text-lg">{ticket.code}</p>
+                          <p className="text-xs text-muted-foreground">{ticket.code}</p>
                           <Badge className={getPriorityColor(ticket.priority)} variant="secondary">
                             {ticket.priority}
                           </Badge>
@@ -203,7 +204,6 @@ export default function TicketsList() {
                             {ticket.status.replace("_", " ")}
                           </Badge>
                         </div>
-                        <p className="text-foreground font-medium">{ticket.title}</p>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span>Catégorie: {ticket.category?.name || "Non classé"}</span>
                           <span>•</span>

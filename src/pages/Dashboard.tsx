@@ -238,8 +238,9 @@ export default function Dashboard() {
                     onClick={() => navigate(`/tickets/${ticket.id}`)}
                   >
                     <div className="space-y-1 flex-1">
+                      <p className="text-lg font-semibold">{ticket.title}</p>
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold">{ticket.code}</p>
+                        <p className="text-xs text-muted-foreground">{ticket.code}</p>
                         <Badge className={getPriorityColor(ticket.priority)} variant="secondary">
                           {ticket.priority}
                         </Badge>
@@ -247,7 +248,6 @@ export default function Dashboard() {
                           {ticket.status.replace("_", " ")}
                         </Badge>
                       </div>
-                      <p className="text-sm text-foreground">{ticket.title}</p>
                       <p className="text-xs text-muted-foreground">
                         Catégorie: {ticket.category?.name || "Non classé"}
                       </p>
