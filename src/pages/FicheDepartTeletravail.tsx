@@ -6,11 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { FicheActions } from "@/components/FicheActions";
 
 const ficheSchema = z.object({
@@ -26,6 +30,7 @@ const ficheSchema = z.object({
   nom_machine: z.string().trim().min(1, { message: "Le nom de la machine est requis" }),
   place: z.string().trim().min(1, { message: "La place est requise" }),
   numero_sim: z.string().optional(),
+  date_depart: z.date({ required_error: "La date de départ est requise" }),
 });
 
 export default function FicheDepartTeletravail() {
@@ -34,6 +39,7 @@ export default function FicheDepartTeletravail() {
   const [userId, setUserId] = useState<string>("");
   const [showActions, setShowActions] = useState(false);
   const [createdFiche, setCreatedFiche] = useState<any>(null);
+  const [dateDepart, setDateDepart] = useState<Date>();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -60,9 +66,16 @@ export default function FicheDepartTeletravail() {
     const numero_sim = formData.get("numero_sim") as string;
 
     try {
+      if (!dateDepart) {
+        toast.error("Veuillez sélectionner une date de départ");
+        setLoading(false);
+        return;
+      }
+
       const validated = ficheSchema.parse({ 
         description, campagne, fonction, type_mouvement,
-        prenom, nom, id_personnel, cni, demeurant, nom_machine, place, numero_sim 
+        prenom, nom, id_personnel, cni, demeurant, nom_machine, place, numero_sim,
+        date_depart: dateDepart
       });
 
       const title = `Départ Télétravail - ${validated.prenom} ${validated.nom} - ${validated.campagne}`;
@@ -86,6 +99,7 @@ export default function FicheDepartTeletravail() {
         demeurant: validated.demeurant,
         nom_machine: validated.nom_machine,
         place: validated.place,
+        date_depart: format(validated.date_depart, "dd/MM/yyyy"),
         ...(validated.numero_sim && { numero_sim: validated.numero_sim }),
       };
 
@@ -212,17 +226,47 @@ export default function FicheDepartTeletravail() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="type_mouvement">Type de mouvement *</Label>
-                <Select name="type_mouvement" required disabled={loading}>
-                  <SelectTrigger id="type_mouvement">
-                    <SelectValue placeholder="Sélectionner le type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Démission">Démission</SelectItem>
-                    <SelectItem value="Retour sur site">Retour sur site</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="type_mouvement">Type de mouvement *</Label>
+                  <Select name="type_mouvement" required disabled={loading}>
+                    <SelectTrigger id="type_mouvement">
+                      <SelectValue placeholder="Sélectionner le type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Démission">Démission</SelectItem>
+                      <SelectItem value="Retour sur site">Retour sur site</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Date de départ *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !dateDepart && "text-muted-foreground"
+                        )}
+                        disabled={loading}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateDepart ? format(dateDepart, "dd/MM/yyyy") : <span>Sélectionner une date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateDepart}
+                        onSelect={setDateDepart}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
               <div className="border-t pt-6 space-y-4">
