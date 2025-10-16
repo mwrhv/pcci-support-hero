@@ -5,7 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Printer, Mail, HandshakeIcon } from "lucide-react";
+import { ArrowLeft, Printer, Mail, HandshakeIcon, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { PrintPreview } from "@/components/PrintPreview";
 
@@ -17,6 +17,7 @@ export default function TicketDetail() {
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [takingCharge, setTakingCharge] = useState(false);
+  const [resolving, setResolving] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -109,6 +110,45 @@ export default function TicketDetail() {
     }
   };
 
+  const handleResolve = async () => {
+    if (!ticket) return;
+
+    setResolving(true);
+    try {
+      const { error } = await supabase
+        .from("tickets")
+        .update({
+          status: "Resolved",
+          resolved_at: new Date().toISOString(),
+        })
+        .eq("id", ticket.id);
+
+      if (error) throw error;
+
+      toast.success("Ticket marqué comme résolu");
+      
+      // Refresh ticket data
+      const { data } = await supabase
+        .from("tickets")
+        .select(`
+          *,
+          requester:profiles!tickets_requester_id_fkey(full_name, email),
+          assignee:profiles!tickets_assignee_id_fkey(full_name, email)
+        `)
+        .eq("id", ticket.id)
+        .single();
+
+      if (data) {
+        setTicket(data);
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast.error("Erreur lors de la résolution du ticket");
+    } finally {
+      setResolving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -147,6 +187,18 @@ export default function TicketDetail() {
               >
                 <HandshakeIcon className="mr-2 h-4 w-4" />
                 {takingCharge ? "Prise en charge..." : "Prendre en charge"}
+              </Button>
+            )}
+            {ticket.status === "In_Progress" && (
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={handleResolve}
+                disabled={resolving}
+                className="bg-success hover:bg-success/90"
+              >
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                {resolving ? "Résolution..." : "Problème résolu"}
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={handlePrint}>
