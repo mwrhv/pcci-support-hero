@@ -21,7 +21,10 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
   const metadata = ficheData.metadata || {};
 
   const handlePrint = () => {
-    window.print();
+    // Délai pour s'assurer que le contenu est complètement rendu
+    setTimeout(() => {
+      window.print();
+    }, 100);
   };
 
   return (
