@@ -133,7 +133,7 @@ export type Database = {
       }
       kb_articles: {
         Row: {
-          author_id: string
+          author_id: string | null
           body_md: string
           category_id: string | null
           created_at: string
@@ -143,7 +143,7 @@ export type Database = {
           visibility: Database["public"]["Enums"]["kb_visibility"]
         }
         Insert: {
-          author_id: string
+          author_id?: string | null
           body_md: string
           category_id?: string | null
           created_at?: string
@@ -153,7 +153,7 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["kb_visibility"]
         }
         Update: {
-          author_id?: string
+          author_id?: string | null
           body_md?: string
           category_id?: string | null
           created_at?: string
@@ -288,7 +288,7 @@ export type Database = {
       }
       ticket_updates: {
         Row: {
-          author_id: string
+          author_id: string | null
           body: string | null
           created_at: string
           from_value: string | null
@@ -298,7 +298,7 @@ export type Database = {
           type: Database["public"]["Enums"]["update_type"]
         }
         Insert: {
-          author_id: string
+          author_id?: string | null
           body?: string | null
           created_at?: string
           from_value?: string | null
@@ -308,7 +308,7 @@ export type Database = {
           type: Database["public"]["Enums"]["update_type"]
         }
         Update: {
-          author_id?: string
+          author_id?: string | null
           body?: string | null
           created_at?: string
           from_value?: string | null
