@@ -37,7 +37,6 @@ export default function TicketsList() {
           assignee:profiles!tickets_assignee_id_fkey(full_name),
           category:categories(name)
         `)
-        .or(`requester_id.eq.${user.id},assignee_id.eq.${user.id}`)
         .order("created_at", { ascending: false });
 
       if (statusFilter !== "all") {

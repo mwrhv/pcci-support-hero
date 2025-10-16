@@ -41,8 +41,7 @@ export default function Dashboard() {
       // Fetch metrics
       const { count: myTicketsCount } = await supabase
         .from("tickets")
-        .select("*", { count: "exact", head: true })
-        .or(`requester_id.eq.${user.id},assignee_id.eq.${user.id}`);
+        .select("*", { count: "exact", head: true });
 
       const { count: newCount } = await supabase
         .from("tickets")
@@ -82,7 +81,6 @@ export default function Dashboard() {
           assignee:profiles!tickets_assignee_id_fkey(full_name),
           category:categories(name)
         `)
-        .or(`requester_id.eq.${user.id},assignee_id.eq.${user.id}`)
         .order("created_at", { ascending: false })
         .limit(5);
 
