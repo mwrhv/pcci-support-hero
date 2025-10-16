@@ -5,7 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Printer, Mail } from "lucide-react";
+import { ArrowLeft, Printer, Mail, HandshakeIcon } from "lucide-react";
 import { toast } from "sonner";
 import { PrintPreview } from "@/components/PrintPreview";
 
@@ -15,12 +15,21 @@ export default function TicketDetail() {
   const [ticket, setTicket] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [takingCharge, setTakingCharge] = useState(false);
 
   useEffect(() => {
     if (!id) return;
 
-    const fetchTicket = async () => {
+    const fetchData = async () => {
       try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setCurrentUser(user);
+        }
+
+        // Fetch ticket
         const { data, error } = await supabase
           .from("tickets")
           .select(`
@@ -48,7 +57,7 @@ export default function TicketDetail() {
       }
     };
 
-    fetchTicket();
+    fetchData();
   }, [id, navigate]);
 
   const handlePrint = () => {
@@ -59,6 +68,45 @@ export default function TicketDetail() {
     const subject = `Fiche: ${ticket?.title || ""}`;
     const body = `Consultez cette fiche: ${window.location.href}`;
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+  };
+
+  const handleTakeCharge = async () => {
+    if (!currentUser || !ticket) return;
+
+    setTakingCharge(true);
+    try {
+      const { error } = await supabase
+        .from("tickets")
+        .update({
+          status: "In_Progress",
+          assignee_id: currentUser.id,
+        })
+        .eq("id", ticket.id);
+
+      if (error) throw error;
+
+      toast.success("Ticket pris en charge avec succès");
+      
+      // Refresh ticket data
+      const { data } = await supabase
+        .from("tickets")
+        .select(`
+          *,
+          requester:profiles!tickets_requester_id_fkey(full_name, email),
+          assignee:profiles!tickets_assignee_id_fkey(full_name, email)
+        `)
+        .eq("id", ticket.id)
+        .single();
+
+      if (data) {
+        setTicket(data);
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast.error("Erreur lors de la prise en charge du ticket");
+    } finally {
+      setTakingCharge(false);
+    }
   };
 
   if (loading) {
@@ -90,6 +138,17 @@ export default function TicketDetail() {
           </Button>
           
           <div className="flex gap-2">
+            {ticket.status === "New" && !ticket.assignee_id && (
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={handleTakeCharge}
+                disabled={takingCharge}
+              >
+                <HandshakeIcon className="mr-2 h-4 w-4" />
+                {takingCharge ? "Prise en charge..." : "Prendre en charge"}
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={handlePrint}>
               <Printer className="mr-2 h-4 w-4" />
               Imprimer
