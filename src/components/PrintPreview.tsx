@@ -35,45 +35,67 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
         </VisuallyHidden>
         <style>{`
           @media print {
-            body * {
-              visibility: hidden !important;
+            /* Cacher tous les éléments non nécessaires */
+            body > *:not(.print-container) {
+              display: none !important;
             }
-            .print-area, .print-area * {
-              visibility: visible !important;
-              color: black !important;
-            }
-            .print-area {
-              position: fixed !important;
+            
+            /* Styles pour la zone d'impression */
+            .print-container {
+              display: block !important;
+              position: absolute !important;
               left: 0 !important;
               top: 0 !important;
               width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            
+            .print-area {
+              display: block !important;
               background: white !important;
+              width: 100% !important;
               padding: 20px !important;
+              margin: 0 !important;
             }
-            .print-area h1,
-            .print-area h2,
-            .print-area h3,
-            .print-area p,
-            .print-area span,
-            .print-area div {
+            
+            /* Forcer les couleurs pour l'impression */
+            .print-area,
+            .print-area * {
               color: black !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
+            
             .print-area .border {
               border-color: #333 !important;
             }
+            
             .print-area .bg-gray-50 {
               background-color: #f9f9f9 !important;
             }
+            
+            /* Cacher les boutons d'action */
             .no-print {
               display: none !important;
             }
+            
+            /* Configuration de la page */
             @page {
               size: A4;
               margin: 1.5cm;
             }
+            
+            /* Styles des images */
             img {
               max-width: 150px !important;
               height: auto !important;
+              display: block !important;
+            }
+            
+            /* S'assurer que tout le contenu est visible */
+            * {
+              overflow: visible !important;
             }
           }
         `}</style>
@@ -93,7 +115,8 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
         </div>
 
         {/* Zone d'impression */}
-        <div className="print-area bg-white p-8">
+        <div className="print-container">
+          <div className="print-area bg-white p-8">
           {/* En-tête avec logo */}
           <div className="flex items-start justify-between mb-8 pb-6 border-b-2 border-gray-800">
             <img src={pcciLogo} alt="PCCI Logo" className="h-16 w-auto" />
@@ -252,6 +275,7 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
               Document généré le {new Date().toLocaleDateString("fr-FR")} à{" "}
               {new Date().toLocaleTimeString("fr-FR")}
             </p>
+          </div>
           </div>
         </div>
       </DialogContent>
