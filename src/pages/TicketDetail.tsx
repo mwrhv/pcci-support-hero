@@ -35,8 +35,8 @@ export default function TicketDetail() {
           .from("tickets")
           .select(`
             *,
-            requester:profiles!tickets_requester_id_fkey(full_name, email),
-            assignee:profiles!tickets_assignee_id_fkey(full_name, email)
+            requester:profiles!tickets_requester_id_fkey(id, full_name, email),
+            assignee:profiles!tickets_assignee_id_fkey(id, full_name, email)
           `)
           .eq("id", id)
           .maybeSingle();
@@ -93,8 +93,8 @@ export default function TicketDetail() {
         .from("tickets")
         .select(`
           *,
-          requester:profiles!tickets_requester_id_fkey(full_name, email),
-          assignee:profiles!tickets_assignee_id_fkey(full_name, email)
+          requester:profiles!tickets_requester_id_fkey(id, full_name, email),
+          assignee:profiles!tickets_assignee_id_fkey(id, full_name, email)
         `)
         .eq("id", ticket.id)
         .single();
@@ -132,8 +132,8 @@ export default function TicketDetail() {
         .from("tickets")
         .select(`
           *,
-          requester:profiles!tickets_requester_id_fkey(full_name, email),
-          assignee:profiles!tickets_assignee_id_fkey(full_name, email)
+          requester:profiles!tickets_requester_id_fkey(id, full_name, email),
+          assignee:profiles!tickets_assignee_id_fkey(id, full_name, email)
         `)
         .eq("id", ticket.id)
         .single();
@@ -226,6 +226,27 @@ export default function TicketDetail() {
           </CardHeader>
           
           <CardContent className="space-y-6">
+            {/* Informations du créateur */}
+            {ticket.requester && (
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Créé par</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Nom complet</p>
+                    <p className="font-medium">{ticket.requester.full_name}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="font-medium">{ticket.requester.email}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">ID Utilisateur</p>
+                    <p className="font-medium text-xs break-all">{ticket.requester.id}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Informations principales */}
             <div>
               <h3 className="font-semibold text-lg mb-3">Informations principales</h3>
