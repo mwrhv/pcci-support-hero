@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, User, Settings } from "lucide-react";
+import { LogOut, User, Settings, FileText } from "lucide-react";
 import { toast } from "sonner";
 import pcciLogo from "@/assets/pcci-logo.png";
 
@@ -19,6 +19,7 @@ export const Navbar = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSupervisorOrAdmin, setIsSupervisorOrAdmin] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -32,14 +33,23 @@ export const Navbar = () => {
         setProfile(data);
 
         // Check if user is admin from user_roles table
-        const { data: roleData } = await supabase
+        const { data: adminRole } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", user.id)
           .eq("role", "admin")
           .single();
         
-        setIsAdmin(!!roleData);
+        setIsAdmin(!!adminRole);
+
+        // Check if user is supervisor or admin
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .in("role", ["supervisor", "admin"]);
+        
+        setIsSupervisorOrAdmin(!!roles && roles.length > 0);
       }
     };
     
@@ -110,6 +120,12 @@ export const Navbar = () => {
                       Paramètres Base de Données
                     </DropdownMenuItem>
                   </>
+                )}
+                {isSupervisorOrAdmin && (
+                  <DropdownMenuItem onClick={() => navigate("/admin/logs")}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Logs d'Audit
+                  </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>

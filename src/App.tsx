@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthGuard } from "./components/AuthGuard";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import TicketsList from "./pages/TicketsList";
 import NewTicket from "./pages/NewTicket";
 import FicheRetourMateriel from "./pages/FicheRetourMateriel";
@@ -14,6 +16,7 @@ import FicheDemission from "./pages/FicheDemission";
 import FichesDirectory from "./pages/FichesDirectory";
 import TicketDetail from "./pages/TicketDetail";
 import AdminUsers from "./pages/AdminUsers";
+import AuditLogs from "./pages/AuditLogs";
 import DatabaseSettings from "./pages/DatabaseSettings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -29,6 +32,8 @@ const App = () => (
         <AuthGuard>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<Dashboard />} />
             <Route path="/tickets" element={<TicketsList />} />
             <Route path="/tickets/new" element={<NewTicket />} />
@@ -38,6 +43,7 @@ const App = () => (
             <Route path="/fiche-demission" element={<FicheDemission />} />
             <Route path="/fiches" element={<FichesDirectory />} />
             <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/logs" element={<AuditLogs />} />
             <Route path="/admin/database" element={<DatabaseSettings />} />
             <Route path="/profile" element={<Profile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
