@@ -161,60 +161,40 @@ export default function Dashboard() {
               Bienvenue, {profile?.full_name}
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button onClick={() => navigate("/fiches")} variant="outline">
-              Répertoire des Fiches
-            </Button>
-            <Button onClick={() => navigate("/fiche-retour-materiel")} variant="outline">
-              Retour Matériel
-            </Button>
-            <Button onClick={() => navigate("/fiche-depart-teletravail")} variant="outline">
-              Départ Télétravail
-            </Button>
-            <Button onClick={() => navigate("/fiche-demission")} variant="outline">
-              Démission
-            </Button>
-            <Button onClick={() => navigate("/tickets/new")} size="lg">
-              <Plus className="mr-2 h-4 w-4" />
-              Nouveau ticket
-            </Button>
-          </div>
+          {!isSupervisor && (
+            <div className="flex gap-2 flex-wrap">
+              <Button onClick={() => navigate("/fiches")} variant="outline">
+                Répertoire des Fiches
+              </Button>
+              <Button onClick={() => navigate("/fiche-retour-materiel")} variant="outline">
+                Retour Matériel
+              </Button>
+              <Button onClick={() => navigate("/fiche-depart-teletravail")} variant="outline">
+                Départ Télétravail
+              </Button>
+              <Button onClick={() => navigate("/fiche-demission")} variant="outline">
+                Démission
+              </Button>
+              <Button onClick={() => navigate("/tickets/new")} size="lg">
+                <Plus className="mr-2 h-4 w-4" />
+                Nouveau ticket
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Show only fiche creation options for supervisors */}
+        {/* Show only new ticket button for supervisors */}
         {isSupervisor ? (
           <Card>
             <CardHeader>
-              <CardTitle>Créer une fiche</CardTitle>
-              <CardDescription>Sélectionnez le type de fiche à créer</CardDescription>
+              <CardTitle>Créer un ticket</CardTitle>
+              <CardDescription>Cliquez ci-dessous pour créer un nouveau ticket</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button
-                  onClick={() => navigate("/fiche-retour-materiel")}
-                  variant="outline"
-                  className="h-24 flex flex-col items-center justify-center"
-                >
-                  <Ticket className="h-8 w-8 mb-2" />
-                  <span>Retour Matériel</span>
-                </Button>
-                <Button
-                  onClick={() => navigate("/fiche-depart-teletravail")}
-                  variant="outline"
-                  className="h-24 flex flex-col items-center justify-center"
-                >
-                  <Ticket className="h-8 w-8 mb-2" />
-                  <span>Départ Télétravail</span>
-                </Button>
-                <Button
-                  onClick={() => navigate("/fiche-demission")}
-                  variant="outline"
-                  className="h-24 flex flex-col items-center justify-center"
-                >
-                  <Ticket className="h-8 w-8 mb-2" />
-                  <span>Démission</span>
-                </Button>
-              </div>
+            <CardContent className="flex justify-center py-8">
+              <Button onClick={() => navigate("/tickets/new")} size="lg" className="h-24 px-12">
+                <Plus className="mr-2 h-6 w-6" />
+                <span className="text-xl">Nouveau ticket</span>
+              </Button>
             </CardContent>
           </Card>
         ) : (
