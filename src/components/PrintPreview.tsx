@@ -90,35 +90,6 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
             </div>
           </div>
 
-          {/* Informations du conseiller */}
-          {(metadata.utilisateur || metadata.email || metadata.departement) && (
-            <div className="mb-3">
-              <h2 className="text-sm font-bold text-gray-900 mb-2 pb-1 border-b border-gray-300">
-                Informations du conseiller
-              </h2>
-              <div className="grid grid-cols-3 gap-2">
-                {metadata.utilisateur && (
-                  <div className="border border-gray-200 rounded p-1.5">
-                    <p className="text-xs font-semibold text-gray-600">Nom</p>
-                    <p className="text-xs text-gray-900">{metadata.utilisateur}</p>
-                  </div>
-                )}
-                {metadata.email && (
-                  <div className="border border-gray-200 rounded p-1.5">
-                    <p className="text-xs font-semibold text-gray-600">Email</p>
-                    <p className="text-xs text-gray-900">{metadata.email}</p>
-                  </div>
-                )}
-                {metadata.departement && (
-                  <div className="border border-gray-200 rounded p-1.5">
-                    <p className="text-xs font-semibold text-gray-600">Dept</p>
-                    <p className="text-xs text-gray-900">{metadata.departement}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Informations principales */}
           <div className="grid grid-cols-3 gap-2 mb-3">
             {metadata.campagne && (
@@ -284,6 +255,35 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
                 <p className="text-xs text-gray-900 whitespace-pre-wrap leading-tight">
                   {ficheData.description}
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Informations du conseiller */}
+          {(metadata.utilisateur || metadata.email || metadata.departement) && (
+            <div className="mb-3">
+              <h2 className="text-sm font-bold text-gray-900 mb-2 pb-1 border-b border-gray-300">
+                Informations du conseiller
+              </h2>
+              <div className="grid grid-cols-3 gap-2">
+                {metadata.utilisateur && (
+                  <div className="border border-gray-200 rounded p-1.5">
+                    <p className="text-xs font-semibold text-gray-600">Nom</p>
+                    <p className="text-xs text-gray-900">{metadata.utilisateur}</p>
+                  </div>
+                )}
+                {metadata.email && (
+                  <div className="border border-gray-200 rounded p-1.5">
+                    <p className="text-xs font-semibold text-gray-600">Email</p>
+                    <p className="text-xs text-gray-900">{metadata.email}</p>
+                  </div>
+                )}
+                {metadata.departement && (
+                  <div className="border border-gray-200 rounded p-1.5">
+                    <p className="text-xs font-semibold text-gray-600">Dept</p>
+                    <p className="text-xs text-gray-900">{metadata.departement}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
