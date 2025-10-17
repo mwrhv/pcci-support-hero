@@ -13,7 +13,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Users, Loader2, Trash2, KeyRound } from "lucide-react";
+import { Shield, Users, Loader2, Trash2, KeyRound, Mail } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +53,9 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [editingEmail, setEditingEmail] = useState<{ userId: string; currentEmail: string } | null>(null);
+  const [newEmail, setNewEmail] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -268,6 +282,61 @@ export default function AdminUsers() {
     }
   };
 
+  const openEmailDialog = (userId: string, currentEmail: string) => {
+    setEditingEmail({ userId, currentEmail });
+    setNewEmail(currentEmail);
+    setIsDialogOpen(true);
+  };
+
+  const updateUserEmail = async () => {
+    if (!editingEmail) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("No active session");
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user-email`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            userId: editingEmail.userId, 
+            newEmail: newEmail 
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update email');
+      }
+
+      toast({
+        title: "Email mis à jour",
+        description: "L'adresse email a été modifiée avec succès",
+      });
+
+      setIsDialogOpen(false);
+      setEditingEmail(null);
+      setNewEmail("");
+      fetchUsers();
+    } catch (error) {
+      console.error("Error updating email:", error);
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Impossible de modifier l'email",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getRoleBadgeColor = (role: AppRole) => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800';
@@ -366,6 +435,15 @@ export default function AdminUsers() {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => openEmailDialog(user.id, user.email)}
+                            title="Modifier l'email"
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => resetUserPassword(user.id, user.email)}
                             title="Réinitialiser le mot de passe"
                           >
@@ -412,6 +490,46 @@ export default function AdminUsers() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier l'adresse email</DialogTitle>
+            <DialogDescription>
+              Entrez la nouvelle adresse email pour cet utilisateur.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="current-email">Email actuel</Label>
+              <Input
+                id="current-email"
+                value={editingEmail?.currentEmail || ""}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-email">Nouvel email</Label>
+              <Input
+                id="new-email"
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="nouvel.email@exemple.com"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={updateUserEmail}>
+              Mettre à jour
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
