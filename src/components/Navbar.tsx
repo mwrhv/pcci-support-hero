@@ -115,6 +115,10 @@ export const Navbar = () => {
                       <Settings className="mr-2 h-4 w-4" />
                       Gestion des Utilisateurs
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/statistics")}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Analyse statistique
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate("/admin/database")}>
                       <Settings className="mr-2 h-4 w-4" />
                       Paramètres Base de Données

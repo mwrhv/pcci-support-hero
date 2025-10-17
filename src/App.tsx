@@ -18,6 +18,7 @@ import TicketDetail from "./pages/TicketDetail";
 import AdminUsers from "./pages/AdminUsers";
 import AuditLogs from "./pages/AuditLogs";
 import DatabaseSettings from "./pages/DatabaseSettings";
+import Statistics from "./pages/Statistics";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/logs" element={<AuditLogs />} />
             <Route path="/admin/database" element={<DatabaseSettings />} />
+            <Route path="/statistics" element={<Statistics />} />
             <Route path="/profile" element={<Profile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
