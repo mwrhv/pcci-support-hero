@@ -18,10 +18,10 @@ import { cn } from "@/lib/utils";
 import { FicheActions } from "@/components/FicheActions";
 
 const ficheSchema = z.object({
-  description: z.string().trim().min(10, { message: "La description doit contenir au moins 10 caractères" }),
+  description: z.string().trim().optional(),
   campagne: z.enum(["ORANGE", "YAS", "EXPRESSO", "CANAL"], { message: "La campagne est requise" }),
   fonction: z.enum(["CONSEILLER COMMERCIAL", "CONSEILLERE COMMERCIALE", "SUPERVISEUR", "TECHNICIEN"], { message: "La fonction est requise" }),
-  type_mouvement: z.enum(["Démission", "Retour sur site"], { message: "Le type de mouvement est requis" }),
+  type_mouvement: z.enum(["Démission", "Retour sur site", "Télétravail"], { message: "Le type de mouvement est requis" }),
   prenom: z.string().trim().min(2, { message: "Le prénom est requis" }),
   nom: z.string().trim().min(2, { message: "Le nom est requis" }),
   id_personnel: z.string().trim().min(1, { message: "L'ID est requis" }),
@@ -236,6 +236,7 @@ export default function FicheDepartTeletravail() {
                     <SelectContent>
                       <SelectItem value="Démission">Démission</SelectItem>
                       <SelectItem value="Retour sur site">Retour sur site</SelectItem>
+                      <SelectItem value="Télétravail">Télétravail</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -291,13 +292,12 @@ export default function FicheDepartTeletravail() {
               </div>
 
               <div className="border-t pt-6 space-y-2">
-                <Label htmlFor="description">Description *</Label>
+                <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
                   name="description"
                   placeholder="Décrivez en détail votre demande de télétravail..."
                   rows={4}
-                  required
                   disabled={loading}
                 />
               </div>
