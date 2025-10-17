@@ -259,9 +259,16 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
             </div>
           )}
 
+          {/* Pied de page */}
+          <div className="mt-3 pt-2 border-t border-gray-300 text-center">
+            <p className="text-xs text-gray-500">
+              {new Date().toLocaleDateString("fr-FR")} - {new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+            </p>
+          </div>
+
           {/* Informations du conseiller */}
           {(metadata.utilisateur || metadata.email || metadata.departement) && (
-            <div className="mb-3">
+            <div className="mt-3 pt-3 border-t border-gray-300">
               <h2 className="text-sm font-bold text-gray-900 mb-2 pb-1 border-b border-gray-300">
                 Informations du conseiller
               </h2>
@@ -287,13 +294,6 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
               </div>
             </div>
           )}
-
-          {/* Pied de page */}
-          <div className="mt-3 pt-2 border-t border-gray-300 text-center">
-            <p className="text-xs text-gray-500">
-              {new Date().toLocaleDateString("fr-FR")} - {new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-            </p>
-          </div>
         </div>
       </DialogContent>
     </Dialog>
