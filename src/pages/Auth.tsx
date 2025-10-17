@@ -167,17 +167,6 @@ export default function Auth() {
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-userid">ID Utilisateur</Label>
-                  <Input
-                    id="signup-userid"
-                    name="userId"
-                    type="text"
-                    placeholder="jdupont"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="signup-fullname">Nom complet</Label>
                   <Input
                     id="signup-fullname"
@@ -195,6 +184,17 @@ export default function Auth() {
                     name="email"
                     type="email"
                     placeholder="jean.dupont@pcci.sn"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-userid">ID Utilisateur</Label>
+                  <Input
+                    id="signup-userid"
+                    name="userId"
+                    type="text"
+                    placeholder="jdupont"
                     required
                     disabled={loading}
                   />
