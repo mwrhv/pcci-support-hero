@@ -20,6 +20,7 @@ export default function Dashboard() {
   const [recentTickets, setRecentTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
+  const [isSupervisor, setIsSupervisor] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -37,6 +38,21 @@ export default function Dashboard() {
         .eq("id", user.id)
         .single();
       setProfile(profileData);
+
+      // Check if user is supervisor (not admin)
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      
+      const isSupervisorOnly = roles?.some(r => r.role === "supervisor") && !roles?.some(r => r.role === "admin");
+      setIsSupervisor(isSupervisorOnly);
+
+      // If supervisor, skip loading metrics and tickets
+      if (isSupervisorOnly) {
+        setLoading(false);
+        return;
+      }
 
       // Fetch metrics
       const { count: myTicketsCount } = await supabase
@@ -165,8 +181,46 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        {/* Show only fiche creation options for supervisors */}
+        {isSupervisor ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Créer une fiche</CardTitle>
+              <CardDescription>Sélectionnez le type de fiche à créer</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Button
+                  onClick={() => navigate("/fiche-retour-materiel")}
+                  variant="outline"
+                  className="h-24 flex flex-col items-center justify-center"
+                >
+                  <Ticket className="h-8 w-8 mb-2" />
+                  <span>Retour Matériel</span>
+                </Button>
+                <Button
+                  onClick={() => navigate("/fiche-depart-teletravail")}
+                  variant="outline"
+                  className="h-24 flex flex-col items-center justify-center"
+                >
+                  <Ticket className="h-8 w-8 mb-2" />
+                  <span>Départ Télétravail</span>
+                </Button>
+                <Button
+                  onClick={() => navigate("/fiche-demission")}
+                  variant="outline"
+                  className="h-24 flex flex-col items-center justify-center"
+                >
+                  <Ticket className="h-8 w-8 mb-2" />
+                  <span>Démission</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Metrics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/tickets")}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Mes Tickets</CardTitle>
@@ -264,6 +318,8 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+          </>
+        )}
       </div>
     </div>
   );

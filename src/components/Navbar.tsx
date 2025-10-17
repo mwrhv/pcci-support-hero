@@ -125,7 +125,7 @@ export const Navbar = () => {
                     </DropdownMenuItem>
                   </>
                 )}
-                {isSupervisorOrAdmin && (
+                {isAdmin && (
                   <DropdownMenuItem onClick={() => navigate("/admin/logs")}>
                     <FileText className="mr-2 h-4 w-4" />
                     Logs d'Audit
