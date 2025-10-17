@@ -11,6 +11,7 @@ import { z } from "zod";
 import pcciLogo from "@/assets/pcci-logo.png";
 
 const signUpSchema = z.object({
+  userId: z.string().trim().min(2, { message: "L'ID utilisateur doit contenir au moins 2 caractères" }).max(50),
   email: z.string().trim().email({ message: "Email invalide" }).max(255).refine(
     (email) => email.endsWith("@pcci.sn"),
     { message: "Seuls les emails @pcci.sn sont autorisés" }
@@ -36,18 +37,20 @@ export default function Auth() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    const userId = formData.get("userId") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const fullName = formData.get("fullName") as string;
 
     try {
-      const validated = signUpSchema.parse({ email, password, fullName });
+      const validated = signUpSchema.parse({ userId, email, password, fullName });
 
       const { data, error } = await supabase.auth.signUp({
         email: validated.email,
         password: validated.password,
         options: {
           data: {
+            user_id: validated.userId,
             full_name: validated.fullName,
           },
           emailRedirectTo: `${window.location.origin}/`,
@@ -163,6 +166,17 @@ export default function Auth() {
 
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-userid">ID Utilisateur</Label>
+                  <Input
+                    id="signup-userid"
+                    name="userId"
+                    type="text"
+                    placeholder="jdupont"
+                    required
+                    disabled={loading}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-fullname">Nom complet</Label>
                   <Input
