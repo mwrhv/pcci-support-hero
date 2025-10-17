@@ -189,16 +189,6 @@ export default function FicheRetourMateriel() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Informations du conseiller</h3>
-                
-                <div className="bg-muted p-4 rounded-md space-y-2">
-                  <p className="text-sm"><span className="font-semibold">Compte:</span> {userProfile?.full_name || "Chargement..."}</p>
-                  <p className="text-sm"><span className="font-semibold">Email:</span> {userProfile?.email || "Chargement..."}</p>
-                  {userProfile?.department && (
-                    <p className="text-sm"><span className="font-semibold">Département:</span> {userProfile.department}</p>
-                  )}
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="prenom">Prénom *</Label>
@@ -346,6 +336,18 @@ export default function FicheRetourMateriel() {
                   required
                   disabled={loading}
                 />
+              </div>
+
+              <div className="border-t pt-6 space-y-4">
+                <h3 className="font-semibold text-lg">Informations du conseiller</h3>
+                
+                <div className="bg-muted p-4 rounded-md space-y-2">
+                  <p className="text-sm"><span className="font-semibold">Compte:</span> {userProfile?.full_name || "Chargement..."}</p>
+                  <p className="text-sm"><span className="font-semibold">Email:</span> {userProfile?.email || "Chargement..."}</p>
+                  {userProfile?.department && (
+                    <p className="text-sm"><span className="font-semibold">Département:</span> {userProfile.department}</p>
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-end space-x-4">
