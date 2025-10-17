@@ -341,6 +341,12 @@ export default function TicketDetail() {
                     <p className="font-medium">{metadata.cni}</p>
                   </div>
                 )}
+                {metadata.telephone && (
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Téléphone</p>
+                    <p className="font-medium">{metadata.telephone}</p>
+                  </div>
+                )}
               </div>
               {metadata.demeurant && (
                 <div className="space-y-1 mt-4">

@@ -162,6 +162,12 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
                   <p className="text-sm text-gray-900">{metadata.cni}</p>
                 </div>
               )}
+              {metadata.telephone && (
+                <div className="border border-gray-200 rounded p-3">
+                  <p className="text-xs font-semibold text-gray-600 mb-1">Téléphone</p>
+                  <p className="text-sm text-gray-900">{metadata.telephone}</p>
+                </div>
+              )}
             </div>
             
             {metadata.demeurant && (

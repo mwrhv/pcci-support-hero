@@ -15,6 +15,12 @@ import { FicheActions } from "@/components/FicheActions";
 
 const ficheSchema = z.object({
   description: z.string().trim().min(10, { message: "La description doit contenir au moins 10 caractères" }),
+  prenom: z.string().trim().min(1, { message: "Le prénom est requis" }).max(100),
+  nom: z.string().trim().min(1, { message: "Le nom est requis" }).max(100),
+  id_personnel: z.string().trim().min(1, { message: "L'ID personnel est requis" }).max(50),
+  cni: z.string().trim().min(1, { message: "Le numéro CNI est requis" }).max(50),
+  telephone: z.string().trim().min(1, { message: "Le numéro de téléphone est requis" }).max(20),
+  demeurant: z.string().trim().min(1, { message: "L'adresse est requise" }).max(500),
   campagne: z.enum(["ORANGE", "YAS", "EXPRESSO", "CANAL"], { message: "La campagne est requise" }),
   fonction: z.enum(["CONSEILLER COMMERCIAL", "CONSEILLERE COMMERCIALE", "SUPERVISEUR", "TECHNICIEN"], { message: "La fonction est requise" }),
   date_demission: z.string().min(1, { message: "La date de démission est requise" }),
@@ -51,6 +57,12 @@ export default function FicheDemission() {
 
     const formData = new FormData(e.currentTarget);
     const description = formData.get("description") as string;
+    const prenom = formData.get("prenom") as string;
+    const nom = formData.get("nom") as string;
+    const id_personnel = formData.get("id_personnel") as string;
+    const cni = formData.get("cni") as string;
+    const telephone = formData.get("telephone") as string;
+    const demeurant = formData.get("demeurant") as string;
     const campagne = formData.get("campagne") as string;
     const fonction = formData.get("fonction") as string;
     const date_demission = formData.get("date_demission") as string;
@@ -64,7 +76,8 @@ export default function FicheDemission() {
       }
 
       const validated = ficheSchema.parse({ 
-        description, campagne, fonction, date_demission, motif 
+        description, prenom, nom, id_personnel, cni, telephone, demeurant,
+        campagne, fonction, date_demission, motif 
       });
 
       const title = `Démission - ${userProfile.full_name} - ${validated.campagne}`;
@@ -78,6 +91,12 @@ export default function FicheDemission() {
 
       const metadata = {
         type: "Fiche Démission",
+        prenom: validated.prenom,
+        nom: validated.nom,
+        id_personnel: validated.id_personnel,
+        cni: validated.cni,
+        telephone: validated.telephone,
+        demeurant: validated.demeurant,
         campagne: validated.campagne,
         fonction: validated.fonction,
         utilisateur: userProfile.full_name,
@@ -149,14 +168,54 @@ export default function FicheDemission() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Informations de l'utilisateur</h3>
+                <h3 className="font-semibold text-lg">Informations du conseiller</h3>
                 
                 <div className="bg-muted p-4 rounded-md space-y-2">
-                  <p className="text-sm"><span className="font-semibold">Nom complet:</span> {userProfile?.full_name || "Chargement..."}</p>
+                  <p className="text-sm"><span className="font-semibold">Compte:</span> {userProfile?.full_name || "Chargement..."}</p>
                   <p className="text-sm"><span className="font-semibold">Email:</span> {userProfile?.email || "Chargement..."}</p>
                   {userProfile?.department && (
                     <p className="text-sm"><span className="font-semibold">Département:</span> {userProfile.department}</p>
                   )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="prenom">Prénom *</Label>
+                    <Input id="prenom" name="prenom" required disabled={loading} maxLength={100} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="nom">Nom *</Label>
+                    <Input id="nom" name="nom" required disabled={loading} maxLength={100} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="id_personnel">ID Personnel *</Label>
+                    <Input id="id_personnel" name="id_personnel" required disabled={loading} maxLength={50} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cni">Numéro CNI *</Label>
+                    <Input id="cni" name="cni" required disabled={loading} maxLength={50} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="telephone">Numéro de téléphone *</Label>
+                    <Input id="telephone" name="telephone" type="tel" required disabled={loading} maxLength={20} />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="demeurant">Adresse (Demeurant) *</Label>
+                  <Textarea
+                    id="demeurant"
+                    name="demeurant"
+                    placeholder="Adresse complète..."
+                    rows={2}
+                    required
+                    disabled={loading}
+                    maxLength={500}
+                  />
                 </div>
               </div>
 
