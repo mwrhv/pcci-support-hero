@@ -11,13 +11,19 @@ import { z } from "zod";
 import pcciLogo from "@/assets/pcci-logo.png";
 
 const signUpSchema = z.object({
-  email: z.string().trim().email({ message: "Email invalide" }).max(255),
+  email: z.string().trim().email({ message: "Email invalide" }).max(255).refine(
+    (email) => email.endsWith("@pcci.sn"),
+    { message: "Seuls les emails @pcci.sn sont autorisés" }
+  ),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
   fullName: z.string().trim().min(2, { message: "Le nom doit contenir au moins 2 caractères" }).max(100),
 });
 
 const signInSchema = z.object({
-  email: z.string().trim().email({ message: "Email invalide" }),
+  email: z.string().trim().email({ message: "Email invalide" }).refine(
+    (email) => email.endsWith("@pcci.sn"),
+    { message: "Seuls les emails @pcci.sn sont autorisés" }
+  ),
   password: z.string().min(1, { message: "Mot de passe requis" }),
 });
 
@@ -51,8 +57,7 @@ export default function Auth() {
       if (error) throw error;
 
       if (data.user) {
-        toast.success("Inscription réussie ! Connexion en cours...");
-        navigate("/");
+        toast.success("Inscription réussie ! Veuillez vérifier votre email pour confirmer votre compte.");
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -78,12 +83,19 @@ export default function Auth() {
     try {
       const validated = signInSchema.parse({ email, password });
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: validated.email,
         password: validated.password,
       });
 
       if (error) throw error;
+
+      // Vérifier si l'email est confirmé
+      if (data.user && !data.user.email_confirmed_at) {
+        await supabase.auth.signOut();
+        toast.error("Veuillez confirmer votre email avant de vous connecter. Vérifiez votre boîte mail.");
+        return;
+      }
 
       toast.success("Connexion réussie !");
       navigate("/");
@@ -123,7 +135,7 @@ export default function Auth() {
                     id="signin-email"
                     name="email"
                     type="email"
-                    placeholder="votre.email@pcci.com"
+                    placeholder="votre.email@pcci.sn"
                     required
                     disabled={loading}
                   />
@@ -168,7 +180,7 @@ export default function Auth() {
                     id="signup-email"
                     name="email"
                     type="email"
-                    placeholder="jean.dupont@pcci.com"
+                    placeholder="jean.dupont@pcci.sn"
                     required
                     disabled={loading}
                   />
