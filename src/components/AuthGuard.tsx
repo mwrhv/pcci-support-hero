@@ -32,7 +32,10 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
   }, []);
 
   useEffect(() => {
-    if (!loading && !session && location.pathname !== "/auth") {
+    const publicRoutes = ["/auth", "/forgot-password", "/reset-password"];
+    const isPublicRoute = publicRoutes.includes(location.pathname);
+    
+    if (!loading && !session && !isPublicRoute) {
       navigate("/auth");
     } else if (!loading && session && location.pathname === "/auth") {
       navigate("/");
