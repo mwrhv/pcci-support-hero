@@ -56,6 +56,9 @@ export default function AdminUsers() {
   const [editingEmail, setEditingEmail] = useState<{ userId: string; currentEmail: string } | null>(null);
   const [newEmail, setNewEmail] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingPassword, setEditingPassword] = useState<{ userId: string; userEmail: string } | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -243,7 +246,24 @@ export default function AdminUsers() {
     }
   };
 
-  const resetUserPassword = async (userId: string, userEmail: string) => {
+  const openPasswordDialog = (userId: string, userEmail: string) => {
+    setEditingPassword({ userId, userEmail });
+    setNewPassword("");
+    setIsPasswordDialogOpen(true);
+  };
+
+  const updateUserPassword = async () => {
+    if (!editingPassword) return;
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Erreur",
+        description: "Le mot de passe doit contenir au moins 6 caractères",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -251,32 +271,39 @@ export default function AdminUsers() {
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reset-user-password`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user-password`,
         {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId }),
+          body: JSON.stringify({ 
+            userId: editingPassword.userId,
+            newPassword: newPassword
+          }),
         }
       );
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to reset password');
+        throw new Error(result.error || 'Failed to update password');
       }
 
       toast({
-        title: "Email envoyé",
-        description: `Un email de réinitialisation a été envoyé à ${userEmail}`,
+        title: "Mot de passe modifié",
+        description: `Le mot de passe de ${editingPassword.userEmail} a été changé avec succès`,
       });
+
+      setIsPasswordDialogOpen(false);
+      setEditingPassword(null);
+      setNewPassword("");
     } catch (error) {
-      console.error("Error resetting password:", error);
+      console.error("Error updating password:", error);
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de réinitialiser le mot de passe",
+        description: error instanceof Error ? error.message : "Impossible de modifier le mot de passe",
         variant: "destructive",
       });
     }
@@ -444,8 +471,8 @@ export default function AdminUsers() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => resetUserPassword(user.id, user.email)}
-                            title="Réinitialiser le mot de passe"
+                            onClick={() => openPasswordDialog(user.id, user.email)}
+                            title="Changer le mot de passe"
                           >
                             <KeyRound className="h-4 w-4" />
                           </Button>
@@ -526,6 +553,37 @@ export default function AdminUsers() {
             </Button>
             <Button onClick={updateUserEmail}>
               Mettre à jour
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Changer le mot de passe</DialogTitle>
+            <DialogDescription>
+              Entrez le nouveau mot de passe pour {editingPassword?.userEmail}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">Nouveau mot de passe</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Minimum 6 caractères"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={updateUserPassword}>
+              Changer le mot de passe
             </Button>
           </DialogFooter>
         </DialogContent>
