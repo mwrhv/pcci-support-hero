@@ -341,7 +341,7 @@ export default function FicheDepartTeletravail() {
               </div>
 
               <div className="border-t pt-6 space-y-4">
-                <h3 className="font-semibold text-lg">Créé par</h3>
+                <h3 className="font-semibold text-lg">RÉCEPTIONNÉ PAR :</h3>
                 
                 <div className="bg-muted p-4 rounded-md space-y-2">
                   <p className="text-sm"><span className="font-semibold">Compte:</span> {userProfile?.full_name || "Chargement..."}</p>
