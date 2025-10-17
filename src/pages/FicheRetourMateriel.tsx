@@ -22,11 +22,6 @@ const ficheSchema = z.object({
   campagne: z.enum(["ORANGE", "YAS", "EXPRESSO", "CANAL"], { message: "La campagne est requise" }),
   fonction: z.enum(["CONSEILLER COMMERCIAL", "CONSEILLERE COMMERCIALE", "SUPERVISEUR", "TECHNICIEN"], { message: "La fonction est requise" }),
   type_mouvement: z.enum(["Démission", "Retour sur site"], { message: "Le type de mouvement est requis" }),
-  prenom: z.string().trim().min(2, { message: "Le prénom est requis" }),
-  nom: z.string().trim().min(2, { message: "Le nom est requis" }),
-  id_personnel: z.string().trim().min(1, { message: "L'ID est requis" }),
-  cni: z.string().trim().min(1, { message: "Le CNI est requis" }),
-  demeurant: z.string().trim().min(1, { message: "Le demeurant est requis" }),
   nom_machine: z.string().trim().min(1, { message: "Le nom de la machine est requis" }),
   place: z.string().trim().min(1, { message: "La place est requise" }),
   numero_sim: z.string().optional(),
@@ -37,14 +32,25 @@ export default function FicheRetourMateriel() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string>("");
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [showActions, setShowActions] = useState(false);
   const [createdFiche, setCreatedFiche] = useState<any>(null);
   const [dateRetour, setDateRetour] = useState<Date>();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserId(user.id);
-    });
+    const fetchUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+        setUserProfile(profile);
+      }
+    };
+    fetchUserData();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -56,11 +62,6 @@ export default function FicheRetourMateriel() {
     const campagne = formData.get("campagne") as string;
     const fonction = formData.get("fonction") as string;
     const type_mouvement = formData.get("type_mouvement") as string;
-    const prenom = formData.get("prenom") as string;
-    const nom = formData.get("nom") as string;
-    const id_personnel = formData.get("id_personnel") as string;
-    const cni = formData.get("cni") as string;
-    const demeurant = formData.get("demeurant") as string;
     const nom_machine = formData.get("nom_machine") as string;
     const place = formData.get("place") as string;
     const numero_sim = formData.get("numero_sim") as string;
@@ -72,13 +73,19 @@ export default function FicheRetourMateriel() {
         return;
       }
 
+      if (!userProfile) {
+        toast.error("Impossible de récupérer les informations du profil");
+        setLoading(false);
+        return;
+      }
+
       const validated = ficheSchema.parse({ 
         description, campagne, fonction, type_mouvement,
-        prenom, nom, id_personnel, cni, demeurant, nom_machine, place, numero_sim,
+        nom_machine, place, numero_sim,
         date_retour: dateRetour
       });
 
-      const title = `Retour Matériel - ${validated.prenom} ${validated.nom} - ${validated.campagne}`;
+      const title = `Retour Matériel - ${userProfile.full_name} - ${validated.campagne}`;
 
       // Get category ID for "Retour Matériel"
       const { data: categoryData } = await supabase
@@ -92,11 +99,9 @@ export default function FicheRetourMateriel() {
         campagne: validated.campagne,
         fonction: validated.fonction,
         type_mouvement: validated.type_mouvement,
-        prenom: validated.prenom,
-        nom: validated.nom,
-        id_personnel: validated.id_personnel,
-        cni: validated.cni,
-        demeurant: validated.demeurant,
+        utilisateur: userProfile.full_name,
+        email: userProfile.email,
+        departement: userProfile.department,
         nom_machine: validated.nom_machine,
         place: validated.place,
         date_retour: format(validated.date_retour, "dd/MM/yyyy"),
@@ -164,33 +169,14 @@ export default function FicheRetourMateriel() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Informations personnelles</h3>
+                <h3 className="font-semibold text-lg">Informations de l'utilisateur</h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="prenom">Prénom *</Label>
-                    <Input id="prenom" name="prenom" required disabled={loading} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="nom">Nom *</Label>
-                    <Input id="nom" name="nom" required disabled={loading} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="id_personnel">ID *</Label>
-                    <Input id="id_personnel" name="id_personnel" required disabled={loading} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cni">CNI *</Label>
-                    <Input id="cni" name="cni" required disabled={loading} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="demeurant">Demeurant *</Label>
-                    <Input id="demeurant" name="demeurant" required disabled={loading} />
-                  </div>
+                <div className="bg-muted p-4 rounded-md space-y-2">
+                  <p className="text-sm"><span className="font-semibold">Nom complet:</span> {userProfile?.full_name || "Chargement..."}</p>
+                  <p className="text-sm"><span className="font-semibold">Email:</span> {userProfile?.email || "Chargement..."}</p>
+                  {userProfile?.department && (
+                    <p className="text-sm"><span className="font-semibold">Département:</span> {userProfile.department}</p>
+                  )}
                 </div>
               </div>
 

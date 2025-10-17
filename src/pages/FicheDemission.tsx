@@ -17,11 +17,6 @@ const ficheSchema = z.object({
   description: z.string().trim().min(10, { message: "La description doit contenir au moins 10 caractères" }),
   campagne: z.enum(["ORANGE", "YAS", "EXPRESSO", "CANAL"], { message: "La campagne est requise" }),
   fonction: z.enum(["CONSEILLER COMMERCIAL", "CONSEILLERE COMMERCIALE", "SUPERVISEUR", "TECHNICIEN"], { message: "La fonction est requise" }),
-  prenom: z.string().trim().min(2, { message: "Le prénom est requis" }),
-  nom: z.string().trim().min(2, { message: "Le nom est requis" }),
-  id_personnel: z.string().trim().min(1, { message: "L'ID est requis" }),
-  cni: z.string().trim().min(1, { message: "Le CNI est requis" }),
-  demeurant: z.string().trim().min(1, { message: "Le demeurant est requis" }),
   date_demission: z.string().min(1, { message: "La date de démission est requise" }),
   motif: z.string().trim().min(10, { message: "Le motif doit contenir au moins 10 caractères" }),
 });
@@ -30,13 +25,24 @@ export default function FicheDemission() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string>("");
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [showActions, setShowActions] = useState(false);
   const [createdFiche, setCreatedFiche] = useState<any>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserId(user.id);
-    });
+    const fetchUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+        setUserProfile(profile);
+      }
+    };
+    fetchUserData();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -47,21 +53,21 @@ export default function FicheDemission() {
     const description = formData.get("description") as string;
     const campagne = formData.get("campagne") as string;
     const fonction = formData.get("fonction") as string;
-    const prenom = formData.get("prenom") as string;
-    const nom = formData.get("nom") as string;
-    const id_personnel = formData.get("id_personnel") as string;
-    const cni = formData.get("cni") as string;
-    const demeurant = formData.get("demeurant") as string;
     const date_demission = formData.get("date_demission") as string;
     const motif = formData.get("motif") as string;
 
     try {
+      if (!userProfile) {
+        toast.error("Impossible de récupérer les informations du profil");
+        setLoading(false);
+        return;
+      }
+
       const validated = ficheSchema.parse({ 
-        description, campagne, fonction, prenom, nom, id_personnel, 
-        cni, demeurant, date_demission, motif 
+        description, campagne, fonction, date_demission, motif 
       });
 
-      const title = `Démission - ${validated.prenom} ${validated.nom} - ${validated.campagne}`;
+      const title = `Démission - ${userProfile.full_name} - ${validated.campagne}`;
 
       // Get category ID for "Démission"
       const { data: categoryData } = await supabase
@@ -74,11 +80,9 @@ export default function FicheDemission() {
         type: "Fiche Démission",
         campagne: validated.campagne,
         fonction: validated.fonction,
-        prenom: validated.prenom,
-        nom: validated.nom,
-        id_personnel: validated.id_personnel,
-        cni: validated.cni,
-        demeurant: validated.demeurant,
+        utilisateur: userProfile.full_name,
+        email: userProfile.email,
+        departement: userProfile.department,
         date_demission: validated.date_demission,
         motif: validated.motif,
       };
@@ -144,33 +148,14 @@ export default function FicheDemission() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Informations personnelles</h3>
+                <h3 className="font-semibold text-lg">Informations de l'utilisateur</h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="prenom">Prénom *</Label>
-                    <Input id="prenom" name="prenom" required disabled={loading} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="nom">Nom *</Label>
-                    <Input id="nom" name="nom" required disabled={loading} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="id_personnel">ID Personnel *</Label>
-                    <Input id="id_personnel" name="id_personnel" required disabled={loading} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cni">CNI *</Label>
-                    <Input id="cni" name="cni" required disabled={loading} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="demeurant">Demeurant *</Label>
-                    <Input id="demeurant" name="demeurant" required disabled={loading} />
-                  </div>
+                <div className="bg-muted p-4 rounded-md space-y-2">
+                  <p className="text-sm"><span className="font-semibold">Nom complet:</span> {userProfile?.full_name || "Chargement..."}</p>
+                  <p className="text-sm"><span className="font-semibold">Email:</span> {userProfile?.email || "Chargement..."}</p>
+                  {userProfile?.department && (
+                    <p className="text-sm"><span className="font-semibold">Département:</span> {userProfile.department}</p>
+                  )}
                 </div>
               </div>
 
