@@ -114,6 +114,7 @@ export default function FicheRetourMateriel() {
           title: title,
           description: validated.description,
           priority: "Medium" as any,
+          status: "Resolved" as any,
           requester_id: userId,
           category_id: categoryData?.id,
           code: "",

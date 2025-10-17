@@ -93,6 +93,7 @@ export default function FicheDemission() {
           title: title,
           description: validated.description,
           priority: "High" as any,
+          status: "Resolved" as any,
           requester_id: userId,
           category_id: categoryData?.id,
           code: "",
