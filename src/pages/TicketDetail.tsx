@@ -247,6 +247,33 @@ export default function TicketDetail() {
               </div>
             )}
 
+            {/* Informations du conseiller */}
+            {(metadata.utilisateur || metadata.email || metadata.departement) && (
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Informations du conseiller</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {metadata.utilisateur && (
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Nom complet</p>
+                      <p className="font-medium">{metadata.utilisateur}</p>
+                    </div>
+                  )}
+                  {metadata.email && (
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="font-medium">{metadata.email}</p>
+                    </div>
+                  )}
+                  {metadata.departement && (
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Département</p>
+                      <p className="font-medium">{metadata.departement}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Informations principales */}
             <div>
               <h3 className="font-semibold text-lg mb-3">Informations principales</h3>

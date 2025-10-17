@@ -73,6 +73,35 @@ export function PrintPreview({ isOpen, onClose, ficheData }: PrintPreviewProps) 
             </div>
           </div>
 
+          {/* Informations du conseiller */}
+          {(metadata.utilisateur || metadata.email || metadata.departement) && (
+            <div className="mb-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b border-gray-300">
+                Informations du conseiller
+              </h2>
+              <div className="grid grid-cols-2 gap-4">
+                {metadata.utilisateur && (
+                  <div className="border border-gray-200 rounded p-3">
+                    <p className="text-xs font-semibold text-gray-600 mb-1">Nom complet</p>
+                    <p className="text-sm text-gray-900">{metadata.utilisateur}</p>
+                  </div>
+                )}
+                {metadata.email && (
+                  <div className="border border-gray-200 rounded p-3">
+                    <p className="text-xs font-semibold text-gray-600 mb-1">Email</p>
+                    <p className="text-sm text-gray-900">{metadata.email}</p>
+                  </div>
+                )}
+                {metadata.departement && (
+                  <div className="border border-gray-200 rounded p-3">
+                    <p className="text-xs font-semibold text-gray-600 mb-1">Département</p>
+                    <p className="text-sm text-gray-900">{metadata.departement}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Informations principales */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             {metadata.campagne && (
