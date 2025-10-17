@@ -256,6 +256,39 @@ export type Database = {
         }
         Relationships: []
       }
+      reports_log: {
+        Row: {
+          error_message: string | null
+          file_path: string | null
+          file_url: string | null
+          generated_at: string
+          id: string
+          metadata: Json | null
+          report_date: string
+          status: string
+        }
+        Insert: {
+          error_message?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          generated_at?: string
+          id?: string
+          metadata?: Json | null
+          report_date: string
+          status: string
+        }
+        Update: {
+          error_message?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          generated_at?: string
+          id?: string
+          metadata?: Json | null
+          report_date?: string
+          status?: string
+        }
+        Relationships: []
+      }
       sla_policies: {
         Row: {
           business_hours: boolean
