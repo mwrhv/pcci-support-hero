@@ -45,6 +45,7 @@ interface UserWithRole {
   full_name: string;
   email: string;
   department: string | null;
+  pcci_id: string | null;
   is_active: boolean;
   avatar_url: string | null;
   gender: string | null;
@@ -107,7 +108,7 @@ export default function AdminUsers() {
     try {
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, full_name, email, department, is_active, avatar_url, gender, created_at, updated_at")
+        .select("id, full_name, email, department, pcci_id, is_active, avatar_url, gender, created_at, updated_at")
         .order("full_name");
 
       if (profilesError) throw profilesError;
@@ -424,6 +425,7 @@ export default function AdminUsers() {
                   <tr className="border-b">
                     <th className="text-left py-3 px-4 font-semibold">Utilisateur</th>
                     <th className="text-left py-3 px-4 font-semibold">Email</th>
+                    <th className="text-left py-3 px-4 font-semibold">ID PCCI</th>
                     <th className="text-left py-3 px-4 font-semibold">Département</th>
                     <th className="text-left py-3 px-4 font-semibold">Rôle</th>
                     <th className="text-left py-3 px-4 font-semibold">Statut</th>
@@ -449,6 +451,7 @@ export default function AdminUsers() {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">{user.email}</td>
+                      <td className="py-3 px-4">{user.pcci_id || '-'}</td>
                       <td className="py-3 px-4">{user.department || '-'}</td>
                       <td className="py-3 px-4">
                         <Select
@@ -636,6 +639,11 @@ export default function AdminUsers() {
                 <div className="grid grid-cols-3 gap-2">
                   <span className="font-semibold text-muted-foreground">Email:</span>
                   <span className="col-span-2">{selectedUser.email}</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <span className="font-semibold text-muted-foreground">ID PCCI:</span>
+                  <span className="col-span-2">{selectedUser.pcci_id || '-'}</span>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
