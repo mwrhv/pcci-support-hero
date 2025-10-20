@@ -8,9 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Camera, Image as ImageIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useNativeCamera } from "@/hooks/useNativeCamera";
+import { isNative } from "@/lib/capacitor-native";
 
 const ticketSchema = z.object({
   title: z.string().trim().min(5, { message: "Le titre doit contenir au moins 5 caractères" }).max(200),
@@ -24,6 +26,7 @@ export default function NewTicket() {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>("");
+  const { isLoading: cameraLoading, photoUri, capturePhoto, selectPhoto, clearPhoto } = useNativeCamera();
 
   useEffect(() => {
     fetchData();
@@ -177,6 +180,54 @@ export default function NewTicket() {
                   </Select>
                 </div>
               </div>
+
+              {/* Native Camera Feature */}
+              {isNative() && (
+                <div className="space-y-2">
+                  <Label>Pièce jointe (Photo)</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={capturePhoto}
+                      disabled={loading || cameraLoading}
+                      className="flex-1"
+                    >
+                      <Camera className="mr-2 h-4 w-4" />
+                      Prendre une photo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={selectPhoto}
+                      disabled={loading || cameraLoading}
+                      className="flex-1"
+                    >
+                      <ImageIcon className="mr-2 h-4 w-4" />
+                      Galerie
+                    </Button>
+                  </div>
+                  
+                  {photoUri && (
+                    <div className="relative mt-4">
+                      <img 
+                        src={photoUri} 
+                        alt="Pièce jointe" 
+                        className="w-full h-48 object-cover rounded-lg border"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={clearPhoto}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex justify-end space-x-4">
                 <Button

@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LogOut, User, Settings, FileText } from "lucide-react";
 import { toast } from "sonner";
 import pcciLogo from "@/assets/pcci-logo.png";
+import { NativeStatusBadge } from "@/components/NativeStatusBadge";
 
 export const Navbar = () => {
   const navigate = useNavigate();
@@ -85,6 +86,7 @@ export const Navbar = () => {
           </Link>
 
           <div className="flex items-center space-x-4">
+            <NativeStatusBadge />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
