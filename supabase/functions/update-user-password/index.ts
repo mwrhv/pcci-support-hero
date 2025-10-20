@@ -19,22 +19,15 @@ Deno.serve(async (req) => {
         auth: {
           autoRefreshToken: false,
           persistSession: false
+        },
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
         }
       }
     )
 
-    // Get the authorization header from the request
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      )
-    }
-
-    // Verify the user making the request
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
+    // Get authenticated user from JWT (verified automatically)
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
 
     if (authError || !user) {
       console.error('Auth error:', authError)
@@ -63,6 +56,7 @@ Deno.serve(async (req) => {
     // Get the user ID and new password from the request body
     const { userId, newPassword } = await req.json()
 
+    // Validate input
     if (!userId || !newPassword) {
       return new Response(
         JSON.stringify({ error: 'User ID and new password are required' }),
@@ -70,10 +64,40 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Validate password length
-    if (newPassword.length < 6) {
+    // Validate UUID format
+    const { data: isValidUuid } = await supabaseClient
+      .rpc('is_valid_uuid', { input: userId })
+    
+    if (!isValidUuid) {
       return new Response(
-        JSON.stringify({ error: 'Password must be at least 6 characters long' }),
+        JSON.stringify({ error: 'Invalid user ID format' }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      )
+    }
+
+    // Validate password requirements
+    if (newPassword.length < 8) {
+      return new Response(
+        JSON.stringify({ error: 'Password must be at least 8 characters long' }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      )
+    }
+
+    if (newPassword.length > 128) {
+      return new Response(
+        JSON.stringify({ error: 'Password is too long (max 128 characters)' }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      )
+    }
+
+    // Check password complexity
+    const hasUpperCase = /[A-Z]/.test(newPassword)
+    const hasLowerCase = /[a-z]/.test(newPassword)
+    const hasNumber = /[0-9]/.test(newPassword)
+    
+    if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+      return new Response(
+        JSON.stringify({ error: 'Password must contain uppercase, lowercase, and numbers' }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       )
     }

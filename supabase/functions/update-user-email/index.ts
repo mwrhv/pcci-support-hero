@@ -19,22 +19,15 @@ Deno.serve(async (req) => {
         auth: {
           autoRefreshToken: false,
           persistSession: false
+        },
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
         }
       }
     )
 
-    // Get the authorization header from the request
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      )
-    }
-
-    // Verify the user making the request
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
+    // Get authenticated user from JWT (verified automatically)
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
 
     if (authError || !user) {
       console.error('Auth error:', authError)
@@ -70,9 +63,31 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(newEmail)) {
+    // Validate UUID format
+    const { data: isValidUuid } = await supabaseClient
+      .rpc('is_valid_uuid', { input: userId })
+    
+    if (!isValidUuid) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid user ID format' }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      )
+    }
+
+    // Normalize and validate email
+    const normalizedEmail = newEmail.trim().toLowerCase()
+    
+    if (normalizedEmail.length > 255) {
+      return new Response(
+        JSON.stringify({ error: 'Email is too long (max 255 characters)' }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      )
+    }
+
+    const { data: isValidEmail } = await supabaseClient
+      .rpc('is_valid_email', { input: normalizedEmail })
+    
+    if (!isValidEmail) {
       return new Response(
         JSON.stringify({ error: 'Invalid email format' }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
@@ -82,7 +97,7 @@ Deno.serve(async (req) => {
     // Update user email in auth.users
     const { data: updateData, error: updateError } = await supabaseClient.auth.admin.updateUserById(
       userId,
-      { email: newEmail }
+      { email: normalizedEmail }
     )
 
     if (updateError) {
@@ -96,7 +111,7 @@ Deno.serve(async (req) => {
     // Update email in profiles table
     const { error: profileError } = await supabaseClient
       .from('profiles')
-      .update({ email: newEmail })
+      .update({ email: normalizedEmail })
       .eq('id', userId)
 
     if (profileError) {
@@ -109,7 +124,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: 'Email updated successfully',
-        newEmail: newEmail
+        newEmail: normalizedEmail
       }),
       { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     )
