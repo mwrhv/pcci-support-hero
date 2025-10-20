@@ -12,6 +12,7 @@ import { User, Mail, Briefcase, Shield, Loader2, KeyRound, Camera, Upload } from
 import { Badge } from "@/components/ui/badge";
 import { useNativeCamera } from "@/hooks/useNativeCamera";
 import { isNative } from "@/lib/capacitor-native";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
 
 type AppRole = 'agent' | 'supervisor' | 'admin';
 
@@ -36,6 +37,8 @@ export default function Profile() {
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { capturePhoto, selectPhoto } = useNativeCamera();
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string>("");
 
   useEffect(() => {
     fetchProfile();
@@ -182,52 +185,40 @@ export default function Profile() {
         });
         return;
       }
-      handleAvatarUpload(file);
+      // Open crop dialog
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageToCrop(reader.result as string);
+        setCropDialogOpen(true);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
+  const handleCroppedImage = async (croppedBlob: Blob) => {
+    await handleAvatarUpload(new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" }));
+  };
+
   const handleNativePhoto = async (action: 'camera' | 'gallery') => {
-    setUploadingAvatar(true);
     try {
       const photoUri = action === 'camera' 
         ? await capturePhoto() 
         : await selectPhoto();
 
       if (!photoUri) {
-        setUploadingAvatar(false);
         return;
       }
 
-      // Convert URI to blob
-      const response = await fetch(photoUri);
-      const blob = await response.blob();
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const avatarUrl = await uploadAvatar(blob, user.id);
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({ avatar_url: avatarUrl })
-        .eq("id", user.id);
-
-      if (error) throw error;
-
-      setProfile({ ...profile, avatar_url: avatarUrl });
-      toast({
-        title: "Photo mise à jour",
-        description: "Votre photo de profil a été modifiée avec succès",
-      });
+      // Open crop dialog with the native photo
+      setImageToCrop(photoUri);
+      setCropDialogOpen(true);
     } catch (error) {
-      console.error("Error uploading avatar:", error);
+      console.error("Error capturing photo:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de charger la photo",
+        description: "Impossible de capturer la photo",
         variant: "destructive",
       });
-    } finally {
-      setUploadingAvatar(false);
     }
   };
 
@@ -493,6 +484,13 @@ export default function Profile() {
             </form>
           </CardContent>
         </Card>
+
+        <ImageCropDialog
+          open={cropDialogOpen}
+          imageSrc={imageToCrop}
+          onCropComplete={handleCroppedImage}
+          onClose={() => setCropDialogOpen(false)}
+        />
 
         {userRole === 'admin' && (
           <Card className="mt-6">
