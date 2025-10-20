@@ -56,6 +56,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "assets_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_minimal"
+            referencedColumns: ["id"]
+          },
         ]
       }
       audit_logs: {
@@ -92,6 +99,13 @@ export type Database = {
             columns: ["actor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_minimal"
             referencedColumns: ["id"]
           },
         ]
@@ -131,6 +145,36 @@ export type Database = {
           },
         ]
       }
+      db_operations_log: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          operation: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          operation: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          operation?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       kb_articles: {
         Row: {
           author_id: string | null
@@ -168,6 +212,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kb_articles_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_minimal"
             referencedColumns: ["id"]
           },
           {
@@ -213,6 +264,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_minimal"
             referencedColumns: ["id"]
           },
         ]
@@ -359,6 +417,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ticket_updates_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_minimal"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ticket_updates_ticket_id_fkey"
             columns: ["ticket_id"]
             isOneToOne: false
@@ -441,6 +506,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tickets_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_minimal"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tickets_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
@@ -452,6 +524,13 @@ export type Database = {
             columns: ["requester_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_minimal"
             referencedColumns: ["id"]
           },
           {
@@ -489,7 +568,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_minimal: {
+        Row: {
+          avatar_url: string | null
+          full_name: string | null
+          id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          full_name?: string | null
+          id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          full_name?: string | null
+          id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       generate_ticket_code: {
@@ -525,6 +621,14 @@ export type Database = {
       }
       is_supervisor_or_admin: {
         Args: { _user_id: string }
+        Returns: boolean
+      }
+      is_valid_email: {
+        Args: { input: string }
+        Returns: boolean
+      }
+      is_valid_uuid: {
+        Args: { input: string }
         Returns: boolean
       }
       log_login_attempt: {
