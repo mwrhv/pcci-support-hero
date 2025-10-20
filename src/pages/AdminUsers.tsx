@@ -692,11 +692,6 @@ export default function AdminUsers() {
                     })}
                   </span>
                 </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  <span className="font-semibold text-muted-foreground">ID:</span>
-                  <span className="col-span-2 font-mono text-xs text-muted-foreground">{selectedUser.id}</span>
-                </div>
               </div>
             </div>
           )}
