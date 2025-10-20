@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Shield, Users, Loader2, Trash2, KeyRound, Mail } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -45,6 +46,7 @@ interface UserWithRole {
   email: string;
   department: string | null;
   is_active: boolean;
+  avatar_url: string | null;
   roles: AppRole[];
 }
 
@@ -100,7 +102,7 @@ export default function AdminUsers() {
     try {
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, full_name, email, department, is_active")
+        .select("id, full_name, email, department, is_active, avatar_url")
         .order("full_name");
 
       if (profilesError) throw profilesError;
@@ -415,7 +417,7 @@ export default function AdminUsers() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold">Nom</th>
+                    <th className="text-left py-3 px-4 font-semibold">Utilisateur</th>
                     <th className="text-left py-3 px-4 font-semibold">Email</th>
                     <th className="text-left py-3 px-4 font-semibold">Département</th>
                     <th className="text-left py-3 px-4 font-semibold">Rôle</th>
@@ -426,7 +428,15 @@ export default function AdminUsers() {
                 <tbody>
                   {users.map((user) => (
                     <tr key={user.id} className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-4">{user.full_name}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={user.avatar_url || undefined} alt={user.full_name} />
+                            <AvatarFallback>{user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <span>{user.full_name}</span>
+                        </div>
+                      </td>
                       <td className="py-3 px-4 text-muted-foreground">{user.email}</td>
                       <td className="py-3 px-4">{user.department || '-'}</td>
                       <td className="py-3 px-4">
