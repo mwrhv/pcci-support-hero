@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { User, Mail, Briefcase, Shield, Loader2, KeyRound, Camera, Upload } from "lucide-react";
+import { User, Mail, Briefcase, Shield, Loader2, KeyRound, Camera, Upload, UserCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNativeCamera } from "@/hooks/useNativeCamera";
 import { isNative } from "@/lib/capacitor-native";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
@@ -30,6 +31,7 @@ export default function Profile() {
     department: "",
     avatar_url: "",
     pcci_id: "",
+    gender: "",
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -68,6 +70,7 @@ export default function Profile() {
           department: data.department || "",
           avatar_url: data.avatar_url || "",
           pcci_id: data.pcci_id || "",
+          gender: data.gender || "",
         });
       }
 
@@ -107,6 +110,7 @@ export default function Profile() {
           full_name: profile.full_name,
           department: profile.department,
           pcci_id: profile.pcci_id,
+          gender: profile.gender,
         })
         .eq("id", user.id);
 
@@ -480,6 +484,26 @@ export default function Profile() {
                   onChange={(e) => setProfile({ ...profile, pcci_id: e.target.value })}
                   placeholder="Votre identifiant PCCI"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="gender" className="flex items-center gap-2">
+                  <UserCircle className="h-4 w-4" />
+                  Genre
+                </Label>
+                <Select
+                  value={profile.gender}
+                  onValueChange={(value) => setProfile({ ...profile, gender: value })}
+                >
+                  <SelectTrigger id="gender">
+                    <SelectValue placeholder="Sélectionner votre genre" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Homme">Homme</SelectItem>
+                    <SelectItem value="Femme">Femme</SelectItem>
+                    <SelectItem value="Autre">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex gap-2 pt-4">
