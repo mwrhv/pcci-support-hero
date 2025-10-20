@@ -5,7 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Printer, Mail, HandshakeIcon, CheckCircle2, Paperclip, Download } from "lucide-react";
+import { ArrowLeft, Printer, Mail, HandshakeIcon, CheckCircle2, Paperclip, Download, FileText, FileImage, FileSpreadsheet, File } from "lucide-react";
 import { toast } from "sonner";
 import { PrintPreview } from "@/components/PrintPreview";
 
@@ -486,13 +486,29 @@ export default function TicketDetail() {
                     const fileName = isOldFormat ? filePath.split('/').pop()?.split('_').slice(1).join('_') || 'Fichier' : attachment.name;
                     const fileSize = isOldFormat ? null : attachment.size;
                     
+                    // Determine file type icon
+                    const getFileIcon = (name: string) => {
+                      const ext = name.toLowerCase().split('.').pop();
+                      if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) {
+                        return <FileImage className="h-8 w-8 text-blue-500" />;
+                      } else if (['pdf'].includes(ext || '')) {
+                        return <FileText className="h-8 w-8 text-red-500" />;
+                      } else if (['xlsx', 'xls', 'csv'].includes(ext || '')) {
+                        return <FileSpreadsheet className="h-8 w-8 text-green-500" />;
+                      } else if (['doc', 'docx', 'txt'].includes(ext || '')) {
+                        return <FileText className="h-8 w-8 text-blue-600" />;
+                      } else {
+                        return <File className="h-8 w-8 text-muted-foreground" />;
+                      }
+                    };
+                    
                     return (
                       <div 
                         key={index}
                         className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <Paperclip className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                          {getFileIcon(fileName)}
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">{fileName}</p>
                             {fileSize && (
