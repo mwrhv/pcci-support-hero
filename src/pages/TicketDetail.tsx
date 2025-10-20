@@ -525,11 +525,21 @@ export default function TicketDetail() {
                             try {
                               const { data, error } = await supabase.storage
                                 .from("ticket-attachments")
-                                .createSignedUrl(filePath, 60);
+                                .download(filePath);
                               
                               if (error) throw error;
                               
-                              window.open(data.signedUrl, '_blank');
+                              if (data) {
+                                const url = window.URL.createObjectURL(data);
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = fileName;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                window.URL.revokeObjectURL(url);
+                                toast.success('Fichier téléchargé avec succès');
+                              }
                             } catch (error) {
                               console.error("Error downloading file:", error);
                               toast.error("Erreur lors du téléchargement du fichier");
