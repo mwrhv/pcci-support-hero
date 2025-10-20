@@ -122,6 +122,115 @@ export default function Profile() {
     }
   };
 
+  const uploadAvatar = async (file: File | Blob, userId: string) => {
+    const fileExt = file instanceof File ? file.name.split('.').pop() : 'jpg';
+    const fileName = `${userId}/${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file, { upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    setUploadingAvatar(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const avatarUrl = await uploadAvatar(file, user.id);
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: avatarUrl })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setProfile({ ...profile, avatar_url: avatarUrl });
+      toast({
+        title: "Photo mise à jour",
+        description: "Votre photo de profil a été modifiée avec succès",
+      });
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger la photo",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Erreur",
+          description: "La photo ne doit pas dépasser 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      handleAvatarUpload(file);
+    }
+  };
+
+  const handleNativePhoto = async (action: 'camera' | 'gallery') => {
+    setUploadingAvatar(true);
+    try {
+      const photoUri = action === 'camera' 
+        ? await capturePhoto() 
+        : await selectPhoto();
+
+      if (!photoUri) {
+        setUploadingAvatar(false);
+        return;
+      }
+
+      // Convert URI to blob
+      const response = await fetch(photoUri);
+      const blob = await response.blob();
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const avatarUrl = await uploadAvatar(blob, user.id);
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: avatarUrl })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setProfile({ ...profile, avatar_url: avatarUrl });
+      toast({
+        title: "Photo mise à jour",
+        description: "Votre photo de profil a été modifiée avec succès",
+      });
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger la photo",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -186,99 +295,6 @@ export default function Profile() {
     }
   };
 
-  const uploadAvatar = async (file: File | Blob, fileName: string) => {
-    setUploadingAvatar(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Non authentifié");
-
-      const fileExt = fileName.split('.').pop();
-      const filePath = `${user.id}/avatar.${fileExt}`;
-
-      // Delete old avatar if exists
-      if (profile.avatar_url) {
-        const oldPath = profile.avatar_url.split('/').slice(-2).join('/');
-        await supabase.storage.from('avatars').remove([oldPath]);
-      }
-
-      // Upload new avatar
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      // Update profile with new avatar URL
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: data.publicUrl })
-        .eq('id', user.id);
-
-      if (updateError) throw updateError;
-
-      setProfile({ ...profile, avatar_url: data.publicUrl });
-      toast({
-        title: "Photo de profil mise à jour",
-        description: "Votre photo a été enregistrée avec succès",
-      });
-    } catch (error: any) {
-      console.error("Error uploading avatar:", error);
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de télécharger la photo",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
-
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Fichier trop volumineux",
-          description: "La taille maximale est de 5 MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      await uploadAvatar(file, file.name);
-    }
-  };
-
-  const handleNativeCamera = async () => {
-    const uri = await capturePhoto();
-    if (uri) {
-      try {
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        await uploadAvatar(blob, 'avatar.jpg');
-      } catch (error) {
-        console.error("Error processing photo:", error);
-      }
-    }
-  };
-
-  const handleNativeGallery = async () => {
-    const uri = await selectPhoto();
-    if (uri) {
-      try {
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        await uploadAvatar(blob, 'avatar.jpg');
-      } catch (error) {
-        console.error("Error processing photo:", error);
-      }
-    }
-  };
-
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -324,28 +340,40 @@ export default function Profile() {
                 </AvatarFallback>
               </Avatar>
               
-              <div className="flex flex-wrap gap-2 justify-center">
+              <div className="flex gap-2">
                 {isNative() ? (
                   <>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={handleNativeCamera}
+                      onClick={() => handleNativePhoto('camera')}
                       disabled={uploadingAvatar}
                     >
-                      <Camera className="mr-2 h-4 w-4" />
-                      Prendre une photo
+                      {uploadingAvatar ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Camera className="h-4 w-4 mr-2" />
+                          Prendre une photo
+                        </>
+                      )}
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={handleNativeGallery}
+                      onClick={() => handleNativePhoto('gallery')}
                       disabled={uploadingAvatar}
                     >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Choisir une photo
+                      {uploadingAvatar ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Galerie
+                        </>
+                      )}
                     </Button>
                   </>
                 ) : (
@@ -353,7 +381,7 @@ export default function Profile() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp,image/jpg"
                       onChange={handleFileSelect}
                       className="hidden"
                     />
@@ -365,13 +393,10 @@ export default function Profile() {
                       disabled={uploadingAvatar}
                     >
                       {uploadingAvatar ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Upload...
-                        </>
+                        <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <>
-                          <Upload className="mr-2 h-4 w-4" />
+                          <Upload className="h-4 w-4 mr-2" />
                           Changer la photo
                         </>
                       )}
