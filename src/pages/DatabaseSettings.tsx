@@ -17,6 +17,8 @@ export default function DatabaseSettings() {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [exportPassword, setExportPassword] = useState("");
+  const [importPassword, setImportPassword] = useState("");
 
   useEffect(() => {
     checkAdminAccess();
@@ -49,9 +51,18 @@ export default function DatabaseSettings() {
   };
 
   const handleExport = async () => {
+    if (!exportPassword || exportPassword.length < 8) {
+      toast.error("Mot de passe requis", {
+        description: "Le mot de passe doit contenir au moins 8 caractères.",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('database-export');
+      const { data, error } = await supabase.functions.invoke('database-export', {
+        body: { password: exportPassword }
+      });
 
       if (error) throw error;
 
@@ -60,15 +71,16 @@ export default function DatabaseSettings() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `database-export-${new Date().toISOString()}.json`;
+      a.download = `database-export-encrypted-${new Date().toISOString()}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
       toast.success("Export réussi", {
-        description: "La base de données a été exportée avec succès.",
+        description: "La base de données a été exportée et chiffrée avec succès.",
       });
+      setExportPassword("");
     } catch (error: any) {
       console.error("Export error:", error);
       toast.error("Erreur lors de l'export", {
@@ -90,8 +102,22 @@ export default function DatabaseSettings() {
       const fileContent = await importFile.text();
       const importData = JSON.parse(fileContent);
 
+      // Check if file is encrypted
+      const isEncrypted = importData.encrypted === true;
+      
+      if (isEncrypted && (!importPassword || importPassword.length < 8)) {
+        toast.error("Mot de passe requis", {
+          description: "Ce fichier est chiffré. Le mot de passe doit contenir au moins 8 caractères.",
+        });
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('database-import', {
-        body: { importData }
+        body: { 
+          importData,
+          password: isEncrypted ? importPassword : undefined
+        }
       });
 
       if (error) throw error;
@@ -100,6 +126,7 @@ export default function DatabaseSettings() {
         description: `Import terminé avec succès.`,
       });
       setImportFile(null);
+      setImportPassword("");
     } catch (error: any) {
       console.error("Import error:", error);
       toast.error("Erreur lors de l'import", {
@@ -166,11 +193,26 @@ export default function DatabaseSettings() {
                 Exporter la base de données
               </CardTitle>
               <CardDescription>
-                Téléchargez une copie complète de toutes les données de la base de données au format JSON.
+                Téléchargez une copie complète et chiffrée de toutes les données de la base de données.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button onClick={handleExport} disabled={loading}>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="export-password">Mot de passe de chiffrement (min. 8 caractères)</Label>
+                <Input
+                  id="export-password"
+                  type="password"
+                  value={exportPassword}
+                  onChange={(e) => setExportPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="mt-2"
+                  minLength={8}
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  ⚠️ Notez ce mot de passe, il sera nécessaire pour restaurer les données.
+                </p>
+              </div>
+              <Button onClick={handleExport} disabled={loading || exportPassword.length < 8}>
                 <Download className="h-4 w-4 mr-2" />
                 Exporter maintenant
               </Button>
@@ -185,11 +227,26 @@ export default function DatabaseSettings() {
                 Backup de la base de données
               </CardTitle>
               <CardDescription>
-                Créez une sauvegarde complète de la base de données (identique à l'export).
+                Créez une sauvegarde complète et chiffrée de la base de données.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button onClick={handleExport} disabled={loading} variant="secondary">
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="backup-password">Mot de passe de chiffrement (min. 8 caractères)</Label>
+                <Input
+                  id="backup-password"
+                  type="password"
+                  value={exportPassword}
+                  onChange={(e) => setExportPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="mt-2"
+                  minLength={8}
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  ⚠️ Notez ce mot de passe, il sera nécessaire pour restaurer les données.
+                </p>
+              </div>
+              <Button onClick={handleExport} disabled={loading || exportPassword.length < 8} variant="secondary">
                 <HardDrive className="h-4 w-4 mr-2" />
                 Créer un backup
               </Button>
@@ -204,12 +261,12 @@ export default function DatabaseSettings() {
                 Importer la base de données
               </CardTitle>
               <CardDescription>
-                Restaurez les données à partir d'un fichier JSON exporté précédemment.
+                Restaurez les données à partir d'un fichier JSON chiffré exporté précédemment.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="import-file">Fichier d'import (JSON)</Label>
+                <Label htmlFor="import-file">Fichier d'import (JSON chiffré)</Label>
                 <Input
                   id="import-file"
                   type="file"
@@ -217,6 +274,21 @@ export default function DatabaseSettings() {
                   onChange={(e) => setImportFile(e.target.files?.[0] || null)}
                   className="mt-2"
                 />
+              </div>
+              <div>
+                <Label htmlFor="import-password">Mot de passe de déchiffrement</Label>
+                <Input
+                  id="import-password"
+                  type="password"
+                  value={importPassword}
+                  onChange={(e) => setImportPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="mt-2"
+                  minLength={8}
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Le mot de passe utilisé lors de l'export/backup
+                </p>
               </div>
               <Button onClick={handleImport} disabled={loading || !importFile}>
                 <Upload className="h-4 w-4 mr-2" />

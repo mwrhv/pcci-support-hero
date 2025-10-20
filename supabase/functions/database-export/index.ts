@@ -5,6 +5,47 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Encrypt data with password using AES-GCM
+async function encryptData(data: string, password: string): Promise<{ encrypted: string; iv: string; salt: string }> {
+  const encoder = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  
+  // Derive key from password
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits', 'deriveKey']
+  );
+  
+  const key = await crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: 100000,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    true,
+    ['encrypt']
+  );
+
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encryptedData = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: iv },
+    key,
+    encoder.encode(data)
+  );
+
+  return {
+    encrypted: btoa(String.fromCharCode(...new Uint8Array(encryptedData))),
+    iv: btoa(String.fromCharCode(...iv)),
+    salt: btoa(String.fromCharCode(...salt)),
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -45,6 +86,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Get password from request body
+    const { password } = await req.json();
+    
+    if (!password || password.length < 8) {
+      return new Response(
+        JSON.stringify({ error: 'Password is required and must be at least 8 characters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     console.log('Exporting database for admin user:', user.id);
 
     // Export all tables data
@@ -70,14 +121,26 @@ Deno.serve(async (req) => {
       console.log(`Exported ${data?.length || 0} rows from ${table}`);
     }
 
+    // Encrypt the export data
+    const dataString = JSON.stringify(exportData);
+    const encrypted = await encryptData(dataString, password);
+    
+    console.log('Data encrypted successfully');
+
     return new Response(
-      JSON.stringify(exportData),
+      JSON.stringify({
+        version: '1.0',
+        encrypted: true,
+        data: encrypted.encrypted,
+        iv: encrypted.iv,
+        salt: encrypted.salt,
+      }),
       { 
         status: 200, 
         headers: { 
           ...corsHeaders, 
           'Content-Type': 'application/json',
-          'Content-Disposition': `attachment; filename="database-export-${new Date().toISOString()}.json"`
+          'Content-Disposition': `attachment; filename="database-export-encrypted-${new Date().toISOString()}.json"`
         } 
       }
     );
