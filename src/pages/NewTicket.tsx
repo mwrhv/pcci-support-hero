@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
-import { ArrowLeft, Camera, Image as ImageIcon, X } from "lucide-react";
+import { ArrowLeft, Camera, Image as ImageIcon, X, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useNativeCamera } from "@/hooks/useNativeCamera";
@@ -26,6 +26,7 @@ export default function NewTicket() {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>("");
+  const [attachments, setAttachments] = useState<File[]>([]);
   const { isLoading: cameraLoading, photoUri, capturePhoto, selectPhoto, clearPhoto } = useNativeCamera();
 
   useEffect(() => {
@@ -49,6 +50,18 @@ export default function NewTicket() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      setAttachments(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -64,6 +77,22 @@ export default function NewTicket() {
         title, description, priority, categoryId
       });
 
+      // Upload attachments first
+      const uploadedFiles: string[] = [];
+      for (const file of attachments) {
+        const fileName = `${userId}/${Date.now()}_${file.name}`;
+        const { error: uploadError, data: uploadData } = await supabase.storage
+          .from("ticket-attachments")
+          .upload(fileName, file);
+
+        if (uploadError) {
+          console.error("Error uploading file:", uploadError);
+          toast.error(`Erreur lors du téléchargement de ${file.name}`);
+        } else if (uploadData) {
+          uploadedFiles.push(fileName);
+        }
+      }
+
       const { data, error } = await supabase
         .from("tickets")
         .insert({
@@ -73,7 +102,7 @@ export default function NewTicket() {
           category_id: validated.categoryId,
           requester_id: userId,
           code: "",
-          metadata: {},
+          metadata: { attachments: uploadedFiles },
         })
         .select()
         .single();
@@ -208,10 +237,55 @@ export default function NewTicket() {
                 </div>
               </div>
 
+              {/* Attachments Field */}
+              <div className="space-y-2">
+                <Label htmlFor="attachments">Pièces jointes</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="attachments"
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                    onChange={handleFileChange}
+                    disabled={loading}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById("attachments")?.click()}
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    <Paperclip className="mr-2 h-4 w-4" />
+                    Joindre des documents ou photos
+                  </Button>
+                </div>
+                
+                {attachments.length > 0 && (
+                  <div className="space-y-2 mt-4">
+                    {attachments.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-md">
+                        <span className="text-sm truncate flex-1">{file.name}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeAttachment(index)}
+                          disabled={loading}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Native Camera Feature */}
               {isNative() && (
                 <div className="space-y-2">
-                  <Label>Pièce jointe (Photo)</Label>
+                  <Label>Photo (Caméra native)</Label>
                   <div className="flex gap-2">
                     <Button
                       type="button"
