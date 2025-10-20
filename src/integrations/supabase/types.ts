@@ -285,6 +285,7 @@ export type Database = {
           gender: string | null
           id: string
           is_active: boolean
+          pcci_id: string | null
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
         }
@@ -297,6 +298,7 @@ export type Database = {
           gender?: string | null
           id: string
           is_active?: boolean
+          pcci_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
         }
@@ -309,6 +311,7 @@ export type Database = {
           gender?: string | null
           id?: string
           is_active?: boolean
+          pcci_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
         }

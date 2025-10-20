@@ -29,6 +29,7 @@ export default function Profile() {
     email: "",
     department: "",
     avatar_url: "",
+    pcci_id: "",
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -66,6 +67,7 @@ export default function Profile() {
           email: data.email || "",
           department: data.department || "",
           avatar_url: data.avatar_url || "",
+          pcci_id: data.pcci_id || "",
         });
       }
 
@@ -104,6 +106,7 @@ export default function Profile() {
         .update({
           full_name: profile.full_name,
           department: profile.department,
+          pcci_id: profile.pcci_id,
         })
         .eq("id", user.id);
 
@@ -463,6 +466,19 @@ export default function Profile() {
                   value={profile.department}
                   onChange={(e) => setProfile({ ...profile, department: e.target.value })}
                   placeholder="Votre département"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pcci_id" className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  ID PCCI
+                </Label>
+                <Input
+                  id="pcci_id"
+                  value={profile.pcci_id}
+                  onChange={(e) => setProfile({ ...profile, pcci_id: e.target.value })}
+                  placeholder="Votre identifiant PCCI"
                 />
               </div>
 
