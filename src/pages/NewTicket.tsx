@@ -78,7 +78,7 @@ export default function NewTicket() {
       });
 
       // Upload attachments first
-      const uploadedFiles: string[] = [];
+      const uploadedFiles: Array<{name: string, size: number, path: string}> = [];
       for (const file of attachments) {
         const fileName = `${userId}/${Date.now()}_${file.name}`;
         const { error: uploadError, data: uploadData } = await supabase.storage
@@ -89,7 +89,11 @@ export default function NewTicket() {
           console.error("Error uploading file:", uploadError);
           toast.error(`Erreur lors du téléchargement de ${file.name}`);
         } else if (uploadData) {
-          uploadedFiles.push(fileName);
+          uploadedFiles.push({
+            name: file.name,
+            size: file.size,
+            path: fileName
+          });
         }
       }
 

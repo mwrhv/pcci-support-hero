@@ -479,42 +479,52 @@ export default function TicketDetail() {
                   Fichiers joints ({metadata.attachments.length})
                 </h3>
                 <div className="grid gap-2">
-                  {metadata.attachments.map((attachment: any, index: number) => (
-                    <div 
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Paperclip className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{attachment.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {(attachment.size / 1024).toFixed(2)} KB
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={async () => {
-                          try {
-                            const { data, error } = await supabase.storage
-                              .from("ticket-attachments")
-                              .createSignedUrl(attachment.path, 60);
-                            
-                            if (error) throw error;
-                            
-                            window.open(data.signedUrl, '_blank');
-                          } catch (error) {
-                            console.error("Error downloading file:", error);
-                            toast.error("Erreur lors du téléchargement du fichier");
-                          }
-                        }}
+                  {metadata.attachments.map((attachment: any, index: number) => {
+                    // Support both old format (string) and new format (object)
+                    const isOldFormat = typeof attachment === 'string';
+                    const filePath = isOldFormat ? attachment : attachment.path;
+                    const fileName = isOldFormat ? filePath.split('/').pop()?.split('_').slice(1).join('_') || 'Fichier' : attachment.name;
+                    const fileSize = isOldFormat ? null : attachment.size;
+                    
+                    return (
+                      <div 
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
                       >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <Paperclip className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{fileName}</p>
+                            {fileSize && (
+                              <p className="text-xs text-muted-foreground">
+                                {(fileSize / 1024).toFixed(2)} KB
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const { data, error } = await supabase.storage
+                                .from("ticket-attachments")
+                                .createSignedUrl(filePath, 60);
+                              
+                              if (error) throw error;
+                              
+                              window.open(data.signedUrl, '_blank');
+                            } catch (error) {
+                              console.error("Error downloading file:", error);
+                              toast.error("Erreur lors du téléchargement du fichier");
+                            }
+                          }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
