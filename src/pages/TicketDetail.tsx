@@ -5,7 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Printer, Mail, HandshakeIcon, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Printer, Mail, HandshakeIcon, CheckCircle2, Paperclip, Download } from "lucide-react";
 import { toast } from "sonner";
 import { PrintPreview } from "@/components/PrintPreview";
 
@@ -467,6 +467,54 @@ export default function TicketDetail() {
                       <p className="font-medium whitespace-pre-wrap">{metadata.motif}</p>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Fichiers joints */}
+            {metadata.attachments && metadata.attachments.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <Paperclip className="h-5 w-5" />
+                  Fichiers joints ({metadata.attachments.length})
+                </h3>
+                <div className="grid gap-2">
+                  {metadata.attachments.map((attachment: any, index: number) => (
+                    <div 
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Paperclip className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{attachment.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {(attachment.size / 1024).toFixed(2)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const { data, error } = await supabase.storage
+                              .from("ticket-attachments")
+                              .createSignedUrl(attachment.path, 60);
+                            
+                            if (error) throw error;
+                            
+                            window.open(data.signedUrl, '_blank');
+                          } catch (error) {
+                            console.error("Error downloading file:", error);
+                            toast.error("Erreur lors du téléchargement du fichier");
+                          }
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
