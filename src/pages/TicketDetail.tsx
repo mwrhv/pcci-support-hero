@@ -86,6 +86,52 @@ export default function TicketDetail() {
 
       if (error) throw error;
 
+      // Get assignee profile for email notification
+      const { data: assigneeProfile } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", currentUser.id)
+        .single();
+
+      // Send email notifications
+      try {
+        // Notify the requester that ticket has been assigned
+        if (ticket.requester?.email) {
+          await supabase.functions.invoke("send-ticket-notification", {
+            body: {
+              type: "ticket_updated",
+              ticketId: ticket.id,
+              ticketCode: ticket.code,
+              ticketTitle: ticket.title,
+              recipientEmail: ticket.requester.email,
+              recipientName: ticket.requester.full_name || "Utilisateur",
+              additionalInfo: {
+                assigneeName: assigneeProfile?.full_name || "Un conseiller",
+                previousStatus: ticket.status,
+                newStatus: "In_Progress",
+              },
+            },
+          });
+        }
+
+        // Notify the assignee
+        if (assigneeProfile?.email) {
+          await supabase.functions.invoke("send-ticket-notification", {
+            body: {
+              type: "ticket_assigned",
+              ticketId: ticket.id,
+              ticketCode: ticket.code,
+              ticketTitle: ticket.title,
+              recipientEmail: assigneeProfile.email,
+              recipientName: assigneeProfile.full_name || "Utilisateur",
+            },
+          });
+        }
+      } catch (emailError) {
+        console.error("Error sending email notifications:", emailError);
+        // Don't fail the operation if email fails
+      }
+
       toast.success("Ticket pris en charge avec succès");
       
       // Refresh ticket data
@@ -124,6 +170,25 @@ export default function TicketDetail() {
         .eq("id", ticket.id);
 
       if (error) throw error;
+
+      // Send email notification to requester
+      if (ticket.requester?.email) {
+        try {
+          await supabase.functions.invoke("send-ticket-notification", {
+            body: {
+              type: "ticket_resolved",
+              ticketId: ticket.id,
+              ticketCode: ticket.code,
+              ticketTitle: ticket.title,
+              recipientEmail: ticket.requester.email,
+              recipientName: ticket.requester.full_name || "Utilisateur",
+            },
+          });
+        } catch (emailError) {
+          console.error("Error sending email notification:", emailError);
+          // Don't fail the operation if email fails
+        }
+      }
 
       toast.success("Ticket marqué comme résolu");
       

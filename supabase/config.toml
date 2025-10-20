@@ -1,5 +1,8 @@
 project_id = "ndkldicrifudismfbzsu"
 
+[functions.send-ticket-notification]
+verify_jwt = true
+
 [functions.delete-user]
 verify_jwt = true
 

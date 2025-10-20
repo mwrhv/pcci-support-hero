@@ -88,6 +88,33 @@ export default function NewTicket() {
         body: "Ticket créé",
       });
 
+      // Get user profile for email notification
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", userId)
+        .single();
+
+      // Send email notification
+      if (profileData?.email) {
+        try {
+          await supabase.functions.invoke("send-ticket-notification", {
+            body: {
+              type: "ticket_created",
+              ticketId: data.id,
+              ticketCode: data.code,
+              ticketTitle: validated.title,
+              recipientEmail: profileData.email,
+              recipientName: profileData.full_name || "Utilisateur",
+            },
+          });
+          console.log("Email notification sent successfully");
+        } catch (emailError) {
+          console.error("Error sending email notification:", emailError);
+          // Don't fail the ticket creation if email fails
+        }
+      }
+
       toast.success("Ticket créé avec succès !");
       navigate(`/tickets/${data.id}`);
     } catch (error: any) {
