@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { User, Mail, Briefcase, Shield, Loader2, KeyRound } from "lucide-react";
+import { User, Mail, Briefcase, Shield, Loader2, KeyRound, Camera, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useNativeCamera } from "@/hooks/useNativeCamera";
+import { isNative } from "@/lib/capacitor-native";
 
 type AppRole = 'agent' | 'supervisor' | 'admin';
 
@@ -19,6 +21,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [userRole, setUserRole] = useState<AppRole>('agent');
   const [profile, setProfile] = useState({
     full_name: "",
@@ -31,6 +34,8 @@ export default function Profile() {
     newPassword: "",
     confirmPassword: "",
   });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { capturePhoto, selectPhoto } = useNativeCamera();
 
   useEffect(() => {
     fetchProfile();
@@ -181,6 +186,99 @@ export default function Profile() {
     }
   };
 
+  const uploadAvatar = async (file: File | Blob, fileName: string) => {
+    setUploadingAvatar(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Non authentifié");
+
+      const fileExt = fileName.split('.').pop();
+      const filePath = `${user.id}/avatar.${fileExt}`;
+
+      // Delete old avatar if exists
+      if (profile.avatar_url) {
+        const oldPath = profile.avatar_url.split('/').slice(-2).join('/');
+        await supabase.storage.from('avatars').remove([oldPath]);
+      }
+
+      // Upload new avatar
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: data.publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setProfile({ ...profile, avatar_url: data.publicUrl });
+      toast({
+        title: "Photo de profil mise à jour",
+        description: "Votre photo a été enregistrée avec succès",
+      });
+    } catch (error: any) {
+      console.error("Error uploading avatar:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de télécharger la photo",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Fichier trop volumineux",
+          description: "La taille maximale est de 5 MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      await uploadAvatar(file, file.name);
+    }
+  };
+
+  const handleNativeCamera = async () => {
+    const uri = await capturePhoto();
+    if (uri) {
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        await uploadAvatar(blob, 'avatar.jpg');
+      } catch (error) {
+        console.error("Error processing photo:", error);
+      }
+    }
+  };
+
+  const handleNativeGallery = async () => {
+    const uri = await selectPhoto();
+    if (uri) {
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        await uploadAvatar(blob, 'avatar.jpg');
+      } catch (error) {
+        console.error("Error processing photo:", error);
+      }
+    }
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -218,13 +316,69 @@ export default function Profile() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex justify-center mb-6">
+            <div className="flex flex-col items-center mb-6 space-y-4">
               <Avatar className="h-24 w-24 ring-4 ring-primary/20">
                 <AvatarImage src={profile.avatar_url} />
                 <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
                   {profile.full_name ? getInitials(profile.full_name) : "U"}
                 </AvatarFallback>
               </Avatar>
+              
+              <div className="flex flex-wrap gap-2 justify-center">
+                {isNative() ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNativeCamera}
+                      disabled={uploadingAvatar}
+                    >
+                      <Camera className="mr-2 h-4 w-4" />
+                      Prendre une photo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNativeGallery}
+                      disabled={uploadingAvatar}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Choisir une photo
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingAvatar}
+                    >
+                      {uploadingAvatar ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Upload...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Changer la photo
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
