@@ -47,6 +47,9 @@ interface UserWithRole {
   department: string | null;
   is_active: boolean;
   avatar_url: string | null;
+  gender: string | null;
+  created_at: string;
+  updated_at: string;
   roles: AppRole[];
 }
 
@@ -61,6 +64,8 @@ export default function AdminUsers() {
   const [editingPassword, setEditingPassword] = useState<{ userId: string; userEmail: string } | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
+  const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -102,7 +107,7 @@ export default function AdminUsers() {
     try {
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, full_name, email, department, is_active, avatar_url")
+        .select("id, full_name, email, department, is_active, avatar_url, gender, created_at, updated_at")
         .order("full_name");
 
       if (profilesError) throw profilesError;
@@ -429,12 +434,18 @@ export default function AdminUsers() {
                   {users.map((user) => (
                     <tr key={user.id} className="border-b hover:bg-muted/50">
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
+                        <div 
+                          className="flex items-center gap-3 cursor-pointer hover:opacity-80"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsUserDetailsOpen(true);
+                          }}
+                        >
                           <Avatar>
                             <AvatarImage src={user.avatar_url || undefined} alt={user.full_name} />
                             <AvatarFallback>{user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
                           </Avatar>
-                          <span>{user.full_name}</span>
+                          <span className="underline">{user.full_name}</span>
                         </div>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">{user.email}</td>
@@ -594,6 +605,96 @@ export default function AdminUsers() {
             </Button>
             <Button onClick={updateUserPassword}>
               Changer le mot de passe
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isUserDetailsOpen} onOpenChange={setIsUserDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Informations de l'utilisateur</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-6 py-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={selectedUser.avatar_url || undefined} alt={selectedUser.full_name} />
+                  <AvatarFallback className="text-2xl">
+                    {selectedUser.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-2xl font-semibold">{selectedUser.full_name}</h3>
+                  <Badge variant={selectedUser.is_active ? "default" : "secondary"} className="mt-1">
+                    {selectedUser.is_active ? "Actif" : "Inactif"}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                <div className="grid grid-cols-3 gap-2">
+                  <span className="font-semibold text-muted-foreground">Email:</span>
+                  <span className="col-span-2">{selectedUser.email}</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <span className="font-semibold text-muted-foreground">Département:</span>
+                  <span className="col-span-2">{selectedUser.department || '-'}</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <span className="font-semibold text-muted-foreground">Genre:</span>
+                  <span className="col-span-2">{selectedUser.gender || '-'}</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <span className="font-semibold text-muted-foreground">Rôle:</span>
+                  <span className="col-span-2">
+                    {selectedUser.roles.map(role => (
+                      <Badge key={role} className={getRoleBadgeColor(role)}>
+                        {getRoleLabel(role)}
+                      </Badge>
+                    ))}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <span className="font-semibold text-muted-foreground">Créé le:</span>
+                  <span className="col-span-2">
+                    {new Date(selectedUser.created_at).toLocaleDateString('fr-FR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <span className="font-semibold text-muted-foreground">Modifié le:</span>
+                  <span className="col-span-2">
+                    {new Date(selectedUser.updated_at).toLocaleDateString('fr-FR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <span className="font-semibold text-muted-foreground">ID:</span>
+                  <span className="col-span-2 font-mono text-xs text-muted-foreground">{selectedUser.id}</span>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsUserDetailsOpen(false)}>
+              Fermer
             </Button>
           </DialogFooter>
         </DialogContent>
