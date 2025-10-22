@@ -92,12 +92,25 @@ export default function FichesDirectory() {
     const lowerQuery = searchQuery.toLowerCase();
     const normalizedQuery = normalizePhoneNumber(searchQuery);
     
+    // Recherche par ID
+    if (fiche.id.toLowerCase().includes(lowerQuery)) {
+      return true;
+    }
+    
     // Recherche dans les champs standards
     if (
       fiche.code.toLowerCase().includes(lowerQuery) ||
       fiche.title.toLowerCase().includes(lowerQuery)
     ) {
       return true;
+    }
+
+    // Recherche par nom complet (prénom + nom)
+    if (fiche.metadata?.prenom || fiche.metadata?.nom) {
+      const fullName = `${fiche.metadata.prenom || ''} ${fiche.metadata.nom || ''}`.toLowerCase();
+      if (fullName.includes(lowerQuery)) {
+        return true;
+      }
     }
 
     // Recherche dans les metadata
