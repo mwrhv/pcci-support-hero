@@ -78,12 +78,71 @@ export default function FichesDirectory() {
     }
   };
 
+  // Fonction pour normaliser les numéros de téléphone
+  const normalizePhoneNumber = (phone: string | undefined | null): string => {
+    if (!phone) return '';
+    // Supprimer tous les caractères non-numériques
+    const digitsOnly = phone.replace(/\D/g, '');
+    // Supprimer le préfixe 221 s'il existe
+    return digitsOnly.replace(/^221/, '');
+  };
+
+  // Fonction pour rechercher dans tous les champs d'une fiche
+  const searchInAllFields = (fiche: Fiche, searchQuery: string): boolean => {
+    const lowerQuery = searchQuery.toLowerCase();
+    const normalizedQuery = normalizePhoneNumber(searchQuery);
+    
+    // Recherche dans les champs standards
+    if (
+      fiche.code.toLowerCase().includes(lowerQuery) ||
+      fiche.title.toLowerCase().includes(lowerQuery)
+    ) {
+      return true;
+    }
+
+    // Recherche dans les metadata
+    if (fiche.metadata) {
+      // Parcourir tous les champs de metadata
+      for (const [key, value] of Object.entries(fiche.metadata)) {
+        if (value === null || value === undefined) continue;
+        
+        const stringValue = String(value).toLowerCase();
+        
+        // Recherche textuelle classique
+        if (stringValue.includes(lowerQuery)) {
+          return true;
+        }
+        
+        // Recherche spécifique pour les numéros de téléphone
+        // Si le champ contient "tel", "phone", "sim" ou "numero"
+        if (
+          key.toLowerCase().includes('tel') ||
+          key.toLowerCase().includes('phone') ||
+          key.toLowerCase().includes('sim') ||
+          key.toLowerCase().includes('numero')
+        ) {
+          const normalizedValue = normalizePhoneNumber(String(value));
+          if (normalizedValue.includes(normalizedQuery)) {
+            return true;
+          }
+        }
+        
+        // Vérifier aussi si la valeur ressemble à un numéro (contient beaucoup de chiffres)
+        const digitCount = String(value).replace(/\D/g, '').length;
+        if (digitCount >= 7) { // Un numéro de téléphone a généralement au moins 7 chiffres
+          const normalizedValue = normalizePhoneNumber(String(value));
+          if (normalizedValue.includes(normalizedQuery)) {
+            return true;
+          }
+        }
+      }
+    }
+    
+    return false;
+  };
+
   const filteredFiches = fiches.filter((fiche) => {
-    const matchesSearch = 
-      fiche.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      fiche.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      fiche.metadata?.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      fiche.metadata?.nom?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = searchTerm === '' || searchInAllFields(fiche, searchTerm);
 
     const matchesCategory = selectedCategory === "all" || (() => {
       // Si la fiche a un category_id, vérifier s'il correspond
