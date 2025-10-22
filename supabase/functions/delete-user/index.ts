@@ -12,7 +12,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Create client with user's JWT to verify authentication
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(
@@ -21,22 +20,23 @@ Deno.serve(async (req) => {
       )
     }
 
-    const supabaseAuth = createClient(
+    // Create client with anon key for auth verification
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
+        global: {
+          headers: { Authorization: authHeader },
+        },
         auth: {
           autoRefreshToken: false,
           persistSession: false
-        },
-        global: {
-          headers: { Authorization: authHeader },
         }
       }
     )
 
     // Get authenticated user from JWT
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
 
     if (authError || !user) {
       console.error('Auth error:', authError)
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     console.log('User authenticated:', user.email)
 
     // Check if the requesting user is an admin
-    const { data: roleData, error: roleError } = await supabaseAuth
+    const { data: roleData, error: roleError } = await supabaseClient
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     }
 
     // Validate UUID format
-    const { data: isValidUuid } = await supabaseAuth
+    const { data: isValidUuid } = await supabaseClient
       .rpc('is_valid_uuid', { input: userId })
     
     if (!isValidUuid) {
