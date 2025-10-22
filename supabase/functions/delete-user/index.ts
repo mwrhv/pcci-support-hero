@@ -12,30 +12,21 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      )
-    }
-
-    // Create client with anon key for auth verification
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
-        global: {
-          headers: { Authorization: authHeader },
-        },
         auth: {
           autoRefreshToken: false,
           persistSession: false
+        },
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
         }
       }
     )
 
-    // Get authenticated user from JWT
+    // Get authenticated user from JWT (verified automatically)
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
 
     if (authError || !user) {
@@ -46,8 +37,6 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log('User authenticated:', user.email)
-
     // Check if the requesting user is an admin
     const { data: roleData, error: roleError } = await supabaseClient
       .from('user_roles')
@@ -57,20 +46,18 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (roleError || !roleData) {
-      console.error('Admin check failed:', roleError)
+      console.error('Role check error:', roleError)
       return new Response(
         JSON.stringify({ error: 'Only admins can delete users' }),
         { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       )
     }
 
-    console.log('Admin verified')
-
     // Get the user ID to delete from the request body
     const { userId } = await req.json()
 
+    // Validate input
     if (!userId) {
-      console.error('Missing userId in request')
       return new Response(
         JSON.stringify({ error: 'User ID is required' }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
@@ -88,31 +75,16 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log('Attempting to delete user:', userId)
-
     // Prevent self-deletion
     if (userId === user.id) {
-      console.error('User attempting to delete their own account')
       return new Response(
         JSON.stringify({ error: 'Cannot delete your own account' }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       )
     }
 
-    // Create admin client with service role key for deletion
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
-
     // Delete the user using admin privileges
-    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+    const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(userId)
 
     if (deleteError) {
       console.error('Error deleting user:', deleteError)
@@ -131,9 +103,11 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Unexpected error:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: errorMessage }),
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     )
   }
