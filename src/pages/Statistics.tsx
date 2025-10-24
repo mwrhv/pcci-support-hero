@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Users, Ticket, Activity, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { showError, safeAsync } from "@/utils/errorHandler";
+import { escapeHtml, sanitizeString } from "@/utils/sanitizer";
 
 const Statistics = () => {
   const [loading, setLoading] = useState(true);
@@ -25,22 +27,36 @@ const Statistics = () => {
 
   const fetchStatistics = async () => {
     try {
-      // Fetch users statistics
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, is_active");
-      
-      if (profilesError) throw profilesError;
+      // Fetch users statistics with error handling
+      const { data: profiles, error: profilesError } = await safeAsync(async () => {
+        const result = await supabase
+          .from("profiles")
+          .select("id, is_active");
+        if (result.error) throw result.error;
+        return result.data;
+      }, "Chargement des profils");
+
+      if (profilesError) {
+        showError(profilesError, "Statistiques utilisateurs");
+        return;
+      }
 
       const totalUsers = profiles?.length || 0;
       const activeUsers = profiles?.filter(p => p.is_active).length || 0;
 
-      // Fetch tickets statistics
-      const { data: tickets, error: ticketsError } = await supabase
-        .from("tickets")
-        .select("id, status, priority, category_id, created_at");
-      
-      if (ticketsError) throw ticketsError;
+      // Fetch tickets statistics with error handling
+      const { data: tickets, error: ticketsError } = await safeAsync(async () => {
+        const result = await supabase
+          .from("tickets")
+          .select("id, status, priority, category_id, created_at");
+        if (result.error) throw result.error;
+        return result.data;
+      }, "Chargement des tickets");
+
+      if (ticketsError) {
+        showError(ticketsError, "Statistiques tickets");
+        return;
+      }
 
       const totalTickets = tickets?.length || 0;
 
@@ -51,7 +67,7 @@ const Statistics = () => {
       }, {});
 
       const ticketsByStatus = Object.entries(statusGroups || {}).map(([name, value]) => ({
-        name,
+        name: sanitizeString(name),
         value,
       }));
 
@@ -62,14 +78,18 @@ const Statistics = () => {
       }, {});
 
       const ticketsByPriority = Object.entries(priorityGroups || {}).map(([name, value]) => ({
-        name,
+        name: sanitizeString(name),
         value,
       }));
 
-      // Fetch categories
-      const { data: categories } = await supabase
-        .from("categories")
-        .select("id, name");
+      // Fetch categories with error handling
+      const { data: categories } = await safeAsync(async () => {
+        const result = await supabase
+          .from("categories")
+          .select("id, name");
+        if (result.error) throw result.error;
+        return result.data;
+      }, "Chargement des catégories");
 
       // Group tickets by category
       const categoryGroups = tickets?.reduce((acc: any, ticket: any) => {
@@ -80,7 +100,7 @@ const Statistics = () => {
       }, {});
 
       const ticketsByCategory = Object.entries(categoryGroups || {}).map(([name, value]) => ({
-        name,
+        name: sanitizeString(name),
         value,
       }));
 
@@ -101,14 +121,21 @@ const Statistics = () => {
         };
       });
 
-      // Fetch recent audit logs
-      const { data: auditLogs, error: auditError } = await supabase
-        .from("audit_logs")
-        .select("id, action, entity_type, created_at")
-        .order("created_at", { ascending: false })
-        .limit(10);
+      // Fetch recent audit logs with error handling
+      const { data: auditLogs, error: auditError } = await safeAsync(async () => {
+        const result = await supabase
+          .from("audit_logs")
+          .select("id, action, entity_type, created_at")
+          .order("created_at", { ascending: false })
+          .limit(10);
+        if (result.error) throw result.error;
+        return result.data;
+      }, "Chargement des logs d'audit");
 
-      if (auditError) throw auditError;
+      if (auditError) {
+        // Non-blocking: audit logs are optional
+        console.warn("Unable to load audit logs:", auditError);
+      }
 
       setStats({
         totalUsers,
@@ -121,7 +148,7 @@ const Statistics = () => {
         ticketsOverTime,
       });
     } catch (error) {
-      console.error("Error fetching statistics:", error);
+      showError(error, "Chargement des statistiques");
     } finally {
       setLoading(false);
     }
@@ -306,8 +333,12 @@ const Statistics = () => {
               {stats.recentActivities.map((activity) => (
                 <div key={activity.id} className="flex items-center justify-between border-b pb-2 last:border-0">
                   <div>
-                    <p className="font-medium">{activity.action}</p>
-                    <p className="text-sm text-muted-foreground">{activity.entity_type}</p>
+                    <p className="font-medium">
+                      <span dangerouslySetInnerHTML={{ __html: escapeHtml(activity.action || 'Action inconnue') }} />
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      <span dangerouslySetInnerHTML={{ __html: escapeHtml(activity.entity_type || 'Type inconnu') }} />
+                    </p>
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {new Date(activity.created_at).toLocaleString('fr-FR')}
