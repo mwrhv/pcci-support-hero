@@ -6,7 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Plus, Ticket, Clock, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
-import { toast } from "sonner";
+
+// Import des fonctionnalités de sécurité
+import { showError, safeAsync } from "@/utils/errorHandler";
+import { escapeHtml } from "@/utils/sanitizer";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -27,69 +30,86 @@ export default function Dashboard() {
   }, []);
 
   const fetchDashboardData = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    // 1. Récupération de l'utilisateur avec gestion d'erreurs
+    const { data: user, error: userError } = await safeAsync(async () => {
+      const result = await supabase.auth.getUser();
+      if (result.error) throw result.error;
+      return result.data.user;
+    }, "Chargement utilisateur");
 
-      // Fetch profile
-      const { data: profileData } = await supabase
+    if (userError || !user) {
+      showError(userError || new Error("Utilisateur non trouvé"));
+      setLoading(false);
+      return;
+    }
+
+    // 2. Récupération du profil
+    const { data: profileData, error: profileError } = await safeAsync(async () => {
+      const result = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
-      setProfile(profileData);
+      if (result.error) throw result.error;
+      return result.data;
+    }, "Chargement du profil");
 
-      // Check if user is supervisor (not admin)
-      const { data: roles } = await supabase
+    if (profileError) {
+      showError(profileError);
+    } else {
+      setProfile(profileData);
+    }
+
+    // 3. Vérification du rôle supervisor
+    const { data: roles } = await safeAsync(async () => {
+      const result = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id);
-      
-      const isSupervisorOnly = roles?.some(r => r.role === "supervisor") && !roles?.some(r => r.role === "admin");
-      setIsSupervisor(isSupervisorOnly);
+      if (result.error) throw result.error;
+      return result.data;
+    }, "Chargement des rôles");
+    
+    const isSupervisorOnly = roles?.some(r => r.role === "supervisor") && !roles?.some(r => r.role === "admin");
+    setIsSupervisor(isSupervisorOnly);
 
-      // If supervisor, skip loading metrics and tickets
-      if (isSupervisorOnly) {
-        setLoading(false);
-        return;
-      }
+    // Si supervisor, ne charge pas les métriques
+    if (isSupervisorOnly) {
+      setLoading(false);
+      return;
+    }
 
-      // Fetch metrics
-      const { count: myTicketsCount } = await supabase
-        .from("tickets")
-        .select("*", { count: "exact", head: true });
+    // 4. Récupération des métriques avec gestion d'erreurs
+    const { data: metricsData, error: metricsError } = await safeAsync(async () => {
+      // Optimisation : Une seule requête avec agrégations
+      const [myTickets, newTickets, inProgress, resolved, overdue] = await Promise.all([
+        supabase.from("tickets").select("*", { count: "exact", head: true }),
+        supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "New"),
+        supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "In_Progress"),
+        supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "Resolved"),
+        supabase.from("tickets").select("*", { count: "exact", head: true })
+          .lt("due_at", new Date().toISOString())
+          .not("status", "in", '("Resolved","Closed","Canceled")')
+      ]);
 
-      const { count: newCount } = await supabase
-        .from("tickets")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "New");
+      return {
+        myTickets: myTickets.count || 0,
+        newTickets: newTickets.count || 0,
+        inProgress: inProgress.count || 0,
+        resolved: resolved.count || 0,
+        overdue: overdue.count || 0,
+      };
+    }, "Chargement des métriques");
 
-      const { count: inProgressCount } = await supabase
-        .from("tickets")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "In_Progress");
+    if (metricsError) {
+      showError(metricsError);
+    } else if (metricsData) {
+      setMetrics(metricsData);
+    }
 
-      const { count: resolvedCount } = await supabase
-        .from("tickets")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "Resolved");
-
-      const { count: overdueCount } = await supabase
-        .from("tickets")
-        .select("*", { count: "exact", head: true })
-        .lt("due_at", new Date().toISOString())
-        .not("status", "in", '("Resolved","Closed","Canceled")');
-
-      setMetrics({
-        myTickets: myTicketsCount || 0,
-        newTickets: newCount || 0,
-        inProgress: inProgressCount || 0,
-        resolved: resolvedCount || 0,
-        overdue: overdueCount || 0,
-      });
-
-      // Fetch recent tickets
-      const { data: ticketsData, error } = await supabase
+    // 5. Récupération des tickets récents
+    const { data: ticketsData, error: ticketsError } = await safeAsync(async () => {
+      const result = await supabase
         .from("tickets")
         .select(`
           *,
@@ -99,15 +119,18 @@ export default function Dashboard() {
         `)
         .order("created_at", { ascending: false })
         .limit(5);
+      
+      if (result.error) throw result.error;
+      return result.data;
+    }, "Chargement des tickets récents");
 
-      if (error) throw error;
+    if (ticketsError) {
+      showError(ticketsError);
+    } else {
       setRecentTickets(ticketsData || []);
-    } catch (error: any) {
-      toast.error("Erreur lors du chargement des données");
-      console.error(error);
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   };
 
   const getPriorityColor = (priority: string) => {
@@ -158,7 +181,7 @@ export default function Dashboard() {
           <div>
             <h1 className="text-3xl font-bold">Tableau de bord</h1>
             <p className="text-muted-foreground mt-1">
-              Bienvenue, {profile?.full_name}
+              Bienvenue, <span dangerouslySetInnerHTML={{ __html: escapeHtml(profile?.full_name || '') }} />
             </p>
           </div>
           {!isSupervisor && (
@@ -272,9 +295,9 @@ export default function Dashboard() {
                     onClick={() => navigate(`/tickets/${ticket.id}`)}
                   >
                     <div className="space-y-1 flex-1">
-                      <p className="text-lg font-semibold">{ticket.title}</p>
+                      <p className="text-lg font-semibold" dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.title) }} />
                       <div className="flex items-center gap-2">
-                        <p className="text-xs text-muted-foreground">{ticket.code}</p>
+                        <p className="text-xs text-muted-foreground" dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.code) }} />
                         <Badge className={getPriorityColor(ticket.priority)} variant="secondary">
                           {ticket.priority}
                         </Badge>
@@ -283,11 +306,11 @@ export default function Dashboard() {
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Catégorie: {ticket.category?.name || "Non classé"}
+                        Catégorie: <span dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.category?.name || "Non classé") }} />
                       </p>
                     </div>
                     <div className="text-right text-sm text-muted-foreground">
-                      <p>Assigné à: {ticket.assignee?.full_name || "Non assigné"}</p>
+                      <p>Assigné à: <span dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.assignee?.full_name || "Non assigné") }} /></p>
                       <p className="text-xs">
                         {new Date(ticket.created_at).toLocaleDateString("fr-FR")}
                       </p>
