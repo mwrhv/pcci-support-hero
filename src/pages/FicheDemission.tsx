@@ -12,19 +12,48 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { FicheActions } from "@/components/FicheActions";
+import { showError, safeAsync } from "@/utils/errorHandler";
+import { escapeHtml, sanitizeString } from "@/utils/sanitizer";
 
 const ficheSchema = z.object({
-  description: z.string().trim().min(10, { message: "La description doit contenir au moins 10 caractères" }),
-  prenom: z.string().trim().min(1, { message: "Le prénom est requis" }).max(100),
-  nom: z.string().trim().min(1, { message: "Le nom est requis" }).max(100),
-  id_personnel: z.string().trim().min(1, { message: "L'ID personnel est requis" }).max(50),
-  cni: z.string().trim().min(1, { message: "Le numéro CNI est requis" }).max(50),
-  telephone: z.string().trim().min(1, { message: "Le numéro de téléphone est requis" }).max(20),
-  demeurant: z.string().trim().min(1, { message: "L'adresse est requise" }).max(500),
+  description: z.string().trim().min(10, { message: "La description doit contenir au moins 10 caractères" }).max(5000, { message: "La description ne doit pas dépasser 5000 caractères" }).refine(
+    (val) => !/[<>]/.test(val),
+    "La description contient des caractères non autorisés"
+  ),
+  prenom: z.string().trim().min(1, { message: "Le prénom est requis" }).max(100).refine(
+    (val) => !/[<>]/.test(val),
+    "Le prénom contient des caractères non autorisés"
+  ),
+  nom: z.string().trim().min(1, { message: "Le nom est requis" }).max(100).refine(
+    (val) => !/[<>]/.test(val),
+    "Le nom contient des caractères non autorisés"
+  ),
+  id_personnel: z.string().trim().min(1, { message: "L'ID personnel est requis" }).max(50).refine(
+    (val) => !/[<>]/.test(val),
+    "L'ID contient des caractères non autorisés"
+  ),
+  cni: z.string().trim().min(1, { message: "Le numéro CNI est requis" }).max(50).refine(
+    (val) => !/[<>]/.test(val),
+    "Le CNI contient des caractères non autorisés"
+  ),
+  telephone: z.string().trim().min(1, { message: "Le numéro de téléphone est requis" }).max(20).regex(
+    /^[+]?[0-9\s()-]+$/,
+    "Le numéro de téléphone n'est pas valide"
+  ),
+  demeurant: z.string().trim().min(1, { message: "L'adresse est requise" }).max(500).refine(
+    (val) => !/[<>]/.test(val),
+    "L'adresse contient des caractères non autorisés"
+  ),
   campagne: z.enum(["ORANGE", "YAS", "EXPRESSO", "CANAL"], { message: "La campagne est requise" }),
   fonction: z.enum(["CONSEILLER COMMERCIAL", "CONSEILLERE COMMERCIALE", "SUPERVISEUR", "TECHNICIEN"], { message: "La fonction est requise" }),
-  date_demission: z.string().min(1, { message: "La date de démission est requise" }),
-  motif: z.string().trim().min(10, { message: "Le motif doit contenir au moins 10 caractères" }),
+  date_demission: z.string().min(1, { message: "La date de démission est requise" }).regex(
+    /^\d{4}-\d{2}-\d{2}$/,
+    "Format de date invalide (YYYY-MM-DD)"
+  ),
+  motif: z.string().trim().min(10, { message: "Le motif doit contenir au moins 10 caractères" }).max(2000, { message: "Le motif ne doit pas dépasser 2000 caractères" }).refine(
+    (val) => !/[<>]/.test(val),
+    "Le motif contient des caractères non autorisés"
+  ),
 });
 
 export default function FicheDemission() {
@@ -37,19 +66,53 @@ export default function FicheDemission() {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      try {
+        // Get user with error handling
+        const { data: user, error: userError } = await safeAsync(async () => {
+          const result = await supabase.auth.getUser();
+          if (result.error) throw result.error;
+          if (!result.data.user) throw new Error("Non authentifié");
+          return result.data.user;
+        }, "Chargement utilisateur");
+
+        if (userError || !user) {
+          navigate("/auth");
+          return;
+        }
+
         setUserId(user.id);
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-        setUserProfile(profile);
+
+        // Fetch profile with error handling
+        const { data: profile, error: profileError } = await safeAsync(async () => {
+          const result = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single();
+          if (result.error) throw result.error;
+          return result.data;
+        }, "Chargement du profil");
+
+        if (profileError) {
+          showError(profileError, "Chargement du profil");
+          return;
+        }
+
+        // Sanitize profile data
+        if (profile) {
+          setUserProfile({
+            ...profile,
+            full_name: sanitizeString(profile.full_name || ""),
+            email: sanitizeString(profile.email || ""),
+            department: sanitizeString(profile.department || ""),
+          });
+        }
+      } catch (error) {
+        showError(error, "Chargement des données");
       }
     };
     fetchUserData();
-  }, []);
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -82,12 +145,21 @@ export default function FicheDemission() {
 
       const title = `Démission - ${userProfile.full_name} - ${validated.campagne}`;
 
-      // Get category ID for "Démission"
-      const { data: categoryData } = await supabase
-        .from("categories")
-        .select("id")
-        .eq("name", "Démission")
-        .single();
+      // Get category ID with error handling
+      const { data: categoryData, error: categoryError } = await safeAsync(async () => {
+        const result = await supabase
+          .from("categories")
+          .select("id")
+          .eq("name", "Démission")
+          .single();
+        if (result.error) throw result.error;
+        return result.data;
+      }, "Chargement de la catégorie");
+
+      if (categoryError || !categoryData) {
+        showError(categoryError || new Error("Catégorie introuvable"), "Catégorie");
+        return;
+      }
 
       const metadata = {
         type: "Fiche Démission",
@@ -106,29 +178,46 @@ export default function FicheDemission() {
         motif: validated.motif,
       };
 
-      const { data, error } = await supabase
-        .from("tickets")
-        .insert({
-          title: title,
-          description: validated.description,
-          priority: "High" as any,
-          status: "Resolved" as any,
-          requester_id: userId,
-          category_id: categoryData?.id,
-          code: "",
-          metadata,
-        })
-        .select()
-        .single();
+      // Create ticket with error handling
+      const { data: ticketData, error: ticketError } = await safeAsync(async () => {
+        const result = await supabase
+          .from("tickets")
+          .insert({
+            title: title,
+            description: validated.description,
+            priority: "High" as any,
+            status: "Resolved" as any,
+            requester_id: userId,
+            category_id: categoryData.id,
+            code: "",
+            metadata,
+          })
+          .select()
+          .single();
+        if (result.error) throw result.error;
+        return result.data;
+      }, "Création de la fiche");
 
-      if (error) throw error;
+      if (ticketError || !ticketData) {
+        showError(ticketError || new Error("Échec de création"), "Création de la fiche");
+        return;
+      }
 
-      await supabase.from("ticket_updates").insert({
-        ticket_id: data.id,
-        author_id: userId,
-        type: "comment",
-        body: "Fiche Démission créée",
-      });
+      // Add ticket update with error handling
+      await safeAsync(async () => {
+        const result = await supabase.from("ticket_updates").insert({
+          ticket_id: ticketData.id,
+          author_id: userId,
+          type: "comment",
+          body: "Fiche Démission créée",
+        });
+        if (result.error) throw result.error;
+        return result;
+      }, "Ajout du commentaire");
+
+      setCreatedFiche(ticketData);
+      setShowActions(true);
+      toast.success("Fiche créée avec succès!");
 
       setCreatedFiche(data);
       setShowActions(true);
@@ -136,8 +225,7 @@ export default function FicheDemission() {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
       } else {
-        toast.error(error.message || "Erreur lors de la création de la fiche");
-        console.error(error);
+        showError(error, "Création de la fiche");
       }
     } finally {
       setLoading(false);
@@ -286,10 +374,19 @@ export default function FicheDemission() {
                 <h3 className="font-semibold text-lg">RÉCEPTIONNÉ PAR :</h3>
                 
                 <div className="bg-muted p-4 rounded-md space-y-2">
-                  <p className="text-sm"><span className="font-semibold">Compte:</span> {userProfile?.full_name || "Chargement..."}</p>
-                  <p className="text-sm"><span className="font-semibold">Email:</span> {userProfile?.email || "Chargement..."}</p>
+                  <p className="text-sm">
+                    <span className="font-semibold">Compte:</span>{" "}
+                    <span dangerouslySetInnerHTML={{ __html: escapeHtml(userProfile?.full_name || "Chargement...") }} />
+                  </p>
+                  <p className="text-sm">
+                    <span className="font-semibold">Email:</span>{" "}
+                    <span dangerouslySetInnerHTML={{ __html: escapeHtml(userProfile?.email || "Chargement...") }} />
+                  </p>
                   {userProfile?.department && (
-                    <p className="text-sm"><span className="font-semibold">Département:</span> {userProfile.department}</p>
+                    <p className="text-sm">
+                      <span className="font-semibold">Département:</span>{" "}
+                      <span dangerouslySetInnerHTML={{ __html: escapeHtml(userProfile.department) }} />
+                    </p>
                   )}
                 </div>
               </div>
