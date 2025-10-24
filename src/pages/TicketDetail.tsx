@@ -6,8 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Printer, Mail, HandshakeIcon, CheckCircle2, Paperclip, Download, FileText, FileImage, FileSpreadsheet, File } from "lucide-react";
-import { toast } from "sonner";
 import { PrintPreview } from "@/components/PrintPreview";
+
+// Import des fonctionnalités de sécurité
+import { showError, safeAsync } from "@/utils/errorHandler";
+import { escapeHtml } from "@/utils/sanitizer";
 
 export default function TicketDetail() {
   const { id } = useParams();
@@ -23,15 +26,18 @@ export default function TicketDetail() {
     if (!id) return;
 
     const fetchData = async () => {
-      try {
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setCurrentUser(user);
-        }
+      const { data: userData, error: userError } = await safeAsync(async () => {
+        const result = await supabase.auth.getUser();
+        if (result.error) throw result.error;
+        return result.data.user;
+      }, "Chargement utilisateur");
 
-        // Fetch ticket
-        const { data, error } = await supabase
+      if (userData) {
+        setCurrentUser(userData);
+      }
+
+      const { data: ticketData, error: ticketError } = await safeAsync(async () => {
+        const result = await supabase
           .from("tickets")
           .select(`
             *,
@@ -41,21 +47,26 @@ export default function TicketDetail() {
           .eq("id", id)
           .maybeSingle();
 
-        if (error) throw error;
+        if (result.error) throw result.error;
         
-        if (!data) {
-          toast.error("Fiche non trouvée");
-          navigate("/");
-          return;
+        if (!result.data) {
+          throw new Error("Fiche non trouvée");
         }
 
-        setTicket(data);
-      } catch (error: any) {
-        console.error(error);
-        toast.error("Erreur lors du chargement de la fiche");
-      } finally {
-        setLoading(false);
+        return result.data;
+      }, "Chargement de la fiche");
+
+      if (ticketError) {
+        showError(ticketError);
+        navigate("/");
+        return;
       }
+
+      if (ticketData) {
+        setTicket(ticketData);
+      }
+      
+      setLoading(false);
     };
 
     fetchData();
@@ -75,8 +86,9 @@ export default function TicketDetail() {
     if (!currentUser || !ticket) return;
 
     setTakingCharge(true);
-    try {
-      const { error } = await supabase
+    
+    const { data, error } = await safeAsync(async () => {
+      const result = await supabase
         .from("tickets")
         .update({
           status: "In_Progress",
@@ -84,7 +96,15 @@ export default function TicketDetail() {
         })
         .eq("id", ticket.id);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
+      return result.data;
+    }, "Prise en charge du ticket");
+
+    if (error) {
+      showError(error);
+      setTakingCharge(false);
+      return;
+    }
 
       // Get assignee profile for email notification
       const { data: assigneeProfile } = await supabase
@@ -132,25 +152,29 @@ export default function TicketDetail() {
         // Don't fail the operation if email fails
       }
 
-      toast.success("Ticket pris en charge avec succès");
-      
       // Refresh ticket data
-      const { data } = await supabase
-        .from("tickets")
-        .select(`
-          *,
-          requester:profiles!tickets_requester_id_fkey(id, full_name, email),
-          assignee:profiles!tickets_assignee_id_fkey(id, full_name, email, department)
-        `)
-        .eq("id", ticket.id)
-        .single();
+      const { data: refreshedData } = await safeAsync(async () => {
+        const result = await supabase
+          .from("tickets")
+          .select(`
+            *,
+            requester:profiles!tickets_requester_id_fkey(id, full_name, email),
+            assignee:profiles!tickets_assignee_id_fkey(id, full_name, email, department)
+          `)
+          .eq("id", ticket.id)
+          .single();
 
-      if (data) {
-        setTicket(data);
+        if (result.error) throw result.error;
+        return result.data;
+      }, "Actualisation des données");
+
+      if (refreshedData) {
+        setTicket(refreshedData);
       }
-    } catch (error: any) {
-      console.error(error);
-      toast.error("Erreur lors de la prise en charge du ticket");
+      
+      showError({ message: "Ticket pris en charge avec succès", type: "success" } as any);
+    } catch (error) {
+      showError(error);
     } finally {
       setTakingCharge(false);
     }
@@ -281,9 +305,11 @@ export default function TicketDetail() {
           <CardHeader>
             <div className="flex items-start justify-between">
               <div>
-                <CardTitle className="text-2xl">{ticket.title}</CardTitle>
+                <CardTitle className="text-2xl">
+                  <span dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.title) }} />
+                </CardTitle>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Référence: {ticket.code}
+                  Référence: <span dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.code) }} />
                 </p>
               </div>
               <Badge>{ticket.status}</Badge>
@@ -298,11 +324,11 @@ export default function TicketDetail() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Nom complet</p>
-                    <p className="font-medium">{ticket.requester.full_name}</p>
+                    <p className="font-medium" dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.requester.full_name) }} />
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-medium">{ticket.requester.email}</p>
+                    <p className="font-medium" dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.requester.email) }} />
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">ID Utilisateur</p>
@@ -558,9 +584,10 @@ export default function TicketDetail() {
             {/* Description */}
             <div>
               <h3 className="font-semibold text-lg mb-3">Description</h3>
-              <p className="text-sm whitespace-pre-wrap bg-muted p-4 rounded-lg">
-                {ticket.description}
-              </p>
+              <div 
+                className="text-sm whitespace-pre-wrap bg-muted p-4 rounded-lg"
+                dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.description) }}
+              />
             </div>
           </CardContent>
         </Card>
