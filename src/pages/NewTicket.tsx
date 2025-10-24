@@ -10,16 +10,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { ArrowLeft, Camera, Image as ImageIcon, X, Paperclip } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
 import { useNativeCamera } from "@/hooks/useNativeCamera";
 import { isNative } from "@/lib/capacitor-native";
 
-const ticketSchema = z.object({
-  title: z.string().trim().min(5, { message: "Le titre doit contenir au moins 5 caractères" }).max(200),
-  description: z.string().trim().min(10, { message: "La description doit contenir au moins 10 caractères" }),
-  priority: z.enum(["Low", "Medium", "High", "Critical"]),
-  categoryId: z.string().uuid({ message: "Catégorie invalide" }),
-});
+// Import des nouvelles fonctionnalités de sécurité
+import { createTicketSchema, attachmentSchema } from "@/schemas/ticketSchemas";
+import { showError, safeAsync } from "@/utils/errorHandler";
+import { 
+  ticketRateLimiter, 
+  checkRateLimit, 
+  getSessionId,
+  fileUploadRateLimiter 
+} from "@/utils/security";
+import { 
+  generateSecureFilename,
+  validateFileSize,
+  validateFileType 
+} from "@/utils/sanitizer";
 
 export default function NewTicket() {
   const navigate = useNavigate();
@@ -34,27 +41,89 @@ export default function NewTicket() {
   }, []);
 
   const fetchData = async () => {
-    try {
+    const { data, error } = await safeAsync(async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) throw new Error("Non authentifié");
       setUserId(user.id);
 
-      const { data: categoriesData } = await supabase
+      const { data: categoriesData, error: catError } = await supabase
         .from("categories")
         .select("*")
         .order("name");
+      
+      if (catError) throw catError;
+      
       setCategories(categoriesData || []);
-    } catch (error: any) {
-      toast.error("Erreur lors du chargement des données");
-      console.error(error);
+      return categoriesData;
+    }, "Chargement des données");
+
+    if (error) {
+      showError(error);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files) {
+    if (!files) return;
+
+    try {
       const newFiles = Array.from(files);
-      setAttachments(prev => [...prev, ...newFiles]);
+      
+      // Validation de chaque fichier
+      const validFiles: File[] = [];
+      const allowedTypes = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/plain'
+      ];
+
+      for (const file of newFiles) {
+        try {
+          // Validation avec schema Zod
+          attachmentSchema.parse({
+            name: file.name,
+            size: file.size,
+            type: file.type
+          });
+
+          // Validation supplémentaire
+          if (!validateFileSize(file, 10 * 1024 * 1024)) {
+            toast.error(`${file.name} : Fichier trop volumineux (max 10MB)`);
+            continue;
+          }
+
+          if (!validateFileType(file, allowedTypes)) {
+            toast.error(`${file.name} : Type de fichier non supporté`);
+            continue;
+          }
+
+          validFiles.push(file);
+        } catch (error) {
+          showError(error, `Validation de ${file.name}`);
+        }
+      }
+
+      // Vérifier le nombre total de fichiers (max 5)
+      if (attachments.length + validFiles.length > 5) {
+        toast.error("Maximum 5 fichiers autorisés");
+        const remaining = 5 - attachments.length;
+        setAttachments(prev => [...prev, ...validFiles.slice(0, remaining)]);
+      } else {
+        setAttachments(prev => [...prev, ...validFiles]);
+      }
+
+      // Reset l'input
+      e.target.value = '';
+    } catch (error) {
+      showError(error, "Ajout de fichiers");
     }
   };
 
@@ -66,97 +135,133 @@ export default function NewTicket() {
     e.preventDefault();
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
-    const priority = formData.get("priority") as string;
-    const categoryId = formData.get("categoryId") as string;
-
     try {
-      const validated = ticketSchema.parse({ 
-        title, description, priority, categoryId
+      // 1. Rate Limiting - Protection contre l'abus
+      const sessionId = getSessionId();
+      checkRateLimit(
+        ticketRateLimiter,
+        sessionId,
+        "Vous créez des tickets trop rapidement. Veuillez patienter."
+      );
+
+      // 2. Extraction et validation des données avec Zod
+      const formData = new FormData(e.currentTarget);
+      const validated = createTicketSchema.parse({ 
+        title: formData.get("title") as string,
+        description: formData.get("description") as string,
+        priority: formData.get("priority") as string,
+        categoryId: formData.get("categoryId") as string,
+        attachments: attachments.map(f => ({
+          name: f.name,
+          size: f.size,
+          type: f.type
+        }))
       });
 
-      // Upload attachments first
+      // 3. Upload sécurisé des fichiers avec rate limiting
       const uploadedFiles: Array<{name: string, size: number, path: string}> = [];
+      
       for (const file of attachments) {
-        const fileName = `${userId}/${Date.now()}_${file.name}`;
+        // Rate limit sur les uploads
+        checkRateLimit(
+          fileUploadRateLimiter,
+          sessionId,
+          "Trop d'uploads. Veuillez patienter."
+        );
+
+        // Génère un nom de fichier sécurisé
+        const secureFileName = generateSecureFilename(file.name, userId);
+        
         const { error: uploadError, data: uploadData } = await supabase.storage
           .from("ticket-attachments")
-          .upload(fileName, file);
+          .upload(secureFileName, file);
 
         if (uploadError) {
-          console.error("Error uploading file:", uploadError);
-          toast.error(`Erreur lors du téléchargement de ${file.name}`);
+          showError(uploadError, `Upload de ${file.name}`);
         } else if (uploadData) {
           uploadedFiles.push({
             name: file.name,
             size: file.size,
-            path: fileName
+            path: secureFileName
           });
         }
       }
 
-      const { data, error } = await supabase
-        .from("tickets")
-        .insert({
-          title: validated.title,
-          description: validated.description,
-          priority: validated.priority as any,
-          category_id: validated.categoryId,
-          requester_id: userId,
-          code: "",
-          metadata: { attachments: uploadedFiles },
-        })
-        .select()
-        .single();
+      // 4. Création du ticket avec gestion d'erreurs améliorée
+      const { data, error } = await safeAsync(async () => {
+        const result = await supabase
+          .from("tickets")
+          .insert({
+            title: validated.title,
+            description: validated.description,
+            priority: validated.priority as any,
+            category_id: validated.categoryId,
+            requester_id: userId,
+            code: "",
+            metadata: { attachments: uploadedFiles },
+          })
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (result.error) throw result.error;
+        return result.data;
+      }, "Création du ticket");
 
-      // Create initial audit log
-      await supabase.from("ticket_updates").insert({
-        ticket_id: data.id,
-        author_id: userId,
-        type: "comment",
-        body: "Ticket créé",
-      });
+      if (error || !data) {
+        showError(error || new Error("Erreur inconnue"));
+        return;
+      }
 
-      // Get user profile for email notification
+      // 5. Création du log d'audit
+      await safeAsync(async () => {
+        const result = await supabase.from("ticket_updates").insert({
+          ticket_id: data.id,
+          author_id: userId,
+          type: "comment",
+          body: "Ticket créé",
+        });
+        
+        if (result.error) throw result.error;
+      }, "Création du log");
+
+      // 6. Notification par email (ne bloque pas si échoue)
       const { data: profileData } = await supabase
         .from("profiles")
         .select("full_name, email")
         .eq("id", userId)
         .single();
 
-      // Send email notification
       if (profileData?.email) {
-        try {
-          await supabase.functions.invoke("send-ticket-notification", {
-            body: {
-              type: "ticket_created",
-              ticketId: data.id,
-              ticketCode: data.code,
-              ticketTitle: validated.title,
-              recipientEmail: profileData.email,
-              recipientName: profileData.full_name || "Utilisateur",
-            },
-          });
-          console.log("Email notification sent successfully");
-        } catch (emailError) {
-          console.error("Error sending email notification:", emailError);
-          // Don't fail the ticket creation if email fails
-        }
+        // Envoi asynchrone sans bloquer
+        supabase.functions.invoke("send-ticket-notification", {
+          body: {
+            type: "ticket_created",
+            ticketId: data.id,
+            ticketCode: data.code,
+            ticketTitle: validated.title,
+            recipientEmail: profileData.email,
+            recipientName: profileData.full_name || "Utilisateur",
+          },
+        }).catch(err => {
+          // Log mais ne bloque pas
+          if (import.meta.env.DEV) {
+            console.error("Email notification error:", err);
+          }
+        });
       }
 
-      toast.success("Ticket créé avec succès !");
+      // 7. Succès !
+      toast.success("Ticket créé avec succès !", {
+        description: `Référence: ${data.code}`,
+        action: {
+          label: "Voir",
+          onClick: () => navigate(`/tickets/${data.id}`)
+        }
+      });
+      
       navigate(`/tickets/${data.id}`);
-    } catch (error: any) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      } else {
-        toast.error(error.message || "Erreur lors de la création du ticket");
-        console.error(error);
-      }
+    } catch (error) {
+      showError(error, "Création du ticket");
     } finally {
       setLoading(false);
     }
@@ -244,6 +349,9 @@ export default function NewTicket() {
               {/* Attachments Field */}
               <div className="space-y-2">
                 <Label htmlFor="attachments">Pièces jointes</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Max 5 fichiers, 10MB chacun. Formats: images, PDF, Word, Excel, texte
+                </p>
                 <div className="flex items-center gap-2">
                   <Input
                     id="attachments"
@@ -251,26 +359,37 @@ export default function NewTicket() {
                     multiple
                     accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
                     onChange={handleFileChange}
-                    disabled={loading}
+                    disabled={loading || attachments.length >= 5}
                     className="hidden"
                   />
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => document.getElementById("attachments")?.click()}
-                    disabled={loading}
+                    disabled={loading || attachments.length >= 5}
                     className="w-full"
                   >
                     <Paperclip className="mr-2 h-4 w-4" />
-                    Joindre des documents ou photos
+                    {attachments.length >= 5 
+                      ? "Limite de fichiers atteinte" 
+                      : "Joindre des documents ou photos"
+                    }
                   </Button>
                 </div>
                 
                 {attachments.length > 0 && (
                   <div className="space-y-2 mt-4">
+                    <p className="text-xs text-muted-foreground">
+                      {attachments.length} / 5 fichiers
+                    </p>
                     {attachments.map((file, index) => (
                       <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-md">
-                        <span className="text-sm truncate flex-1">{file.name}</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm truncate block">{file.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </span>
+                        </div>
                         <Button
                           type="button"
                           variant="ghost"

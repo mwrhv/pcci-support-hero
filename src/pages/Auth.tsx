@@ -5,71 +5,129 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { z } from "zod";
+import { Eye, EyeOff, ShieldCheck, ShieldAlert, AlertCircle } from "lucide-react";
 import pcciLogo from "@/assets/pcci-logo.png";
 
-const signUpSchema = z.object({
-  userId: z.string().trim().min(2, { message: "L'ID utilisateur doit contenir au moins 2 caractères" }).max(50),
-  email: z.string().trim().email({ message: "Email invalide" }).max(255).refine(
+// Import des nouvelles fonctionnalités de sécurité
+import { signUpSchema, signInSchema } from "@/schemas/authSchemas";
+import { showError, safeAsync } from "@/utils/errorHandler";
+import { 
+  authRateLimiter, 
+  checkRateLimit,
+  checkPasswordStrength 
+} from "@/utils/security";
+import { sanitizeEmail } from "@/utils/sanitizer";
+
+// Schéma spécifique PCCI avec validation email
+const pcciSignUpSchema = signUpSchema.extend({
+  userId: signUpSchema.shape.email.refine(
     (email) => email.endsWith("@pcci.sn"),
     { message: "Seuls les emails @pcci.sn sont autorisés" }
   ),
-  password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
-  fullName: z.string().trim().min(2, { message: "Le nom doit contenir au moins 2 caractères" }).max(100),
+  email: signUpSchema.shape.email.refine(
+    (email) => email.endsWith("@pcci.sn"),
+    { message: "Seuls les emails @pcci.sn sont autorisés" }
+  ),
 });
 
-const signInSchema = z.object({
-  email: z.string().trim().email({ message: "Email invalide" }).refine(
+const pcciSignInSchema = signInSchema.extend({
+  email: signInSchema.shape.email.refine(
     (email) => email.endsWith("@pcci.sn"),
     { message: "Seuls les emails @pcci.sn sont autorisés" }
   ),
-  password: z.string().min(1, { message: "Mot de passe requis" }),
 });
 
 export default function Auth() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [], isStrong: false });
+  const [signUpPassword, setSignUpPassword] = useState("");
+
+  const handlePasswordChange = (password: string) => {
+    setSignUpPassword(password);
+    const strength = checkPasswordStrength(password);
+    setPasswordStrength(strength);
+  };
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-    const userId = formData.get("userId") as string;
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const fullName = formData.get("fullName") as string;
-
     try {
-      const validated = signUpSchema.parse({ userId, email, password, fullName });
+      // 1. Extraction des données
+      const formData = new FormData(e.currentTarget);
+      const userId = formData.get("userId") as string;
+      let email = formData.get("email") as string;
+      const password = formData.get("password") as string;
+      const fullName = formData.get("fullName") as string;
+      const confirmPassword = formData.get("confirmPassword") as string;
 
-      const { data, error } = await supabase.auth.signUp({
-        email: validated.email,
-        password: validated.password,
-        options: {
-          data: {
-            user_id: validated.userId,
-            full_name: validated.fullName,
-          },
-          emailRedirectTo: `${window.location.origin}/`,
-        },
+      // 2. Sanitisation de l'email
+      const cleanEmail = sanitizeEmail(email);
+      if (!cleanEmail) {
+        toast.error("Email invalide");
+        return;
+      }
+      email = cleanEmail;
+
+      // 3. Validation Zod avec schéma PCCI
+      const validated = pcciSignUpSchema.parse({ 
+        userId, 
+        email, 
+        password, 
+        fullName,
+        confirmPassword 
       });
 
-      if (error) throw error;
+      // 4. Vérification force du mot de passe
+      const strength = checkPasswordStrength(password);
+      if (!strength.isStrong) {
+        toast.error("Mot de passe trop faible", {
+          description: strength.feedback.join(", ")
+        });
+        return;
+      }
 
-      if (data.user) {
-        toast.success("Inscription réussie ! Veuillez vérifier votre email pour confirmer votre compte.");
+      // 5. Inscription avec gestion d'erreurs sécurisée
+      const { data, error } = await safeAsync(async () => {
+        const result = await supabase.auth.signUp({
+          email: validated.email,
+          password: validated.password,
+          options: {
+            data: {
+              user_id: validated.userId || validated.email.split('@')[0],
+              full_name: validated.fullName,
+            },
+            emailRedirectTo: `${window.location.origin}/`,
+          },
+        });
+
+        if (result.error) throw result.error;
+        return result.data;
+      }, "Inscription");
+
+      if (error) {
+        // Gestion spécifique des erreurs d'inscription
+        if (error.message?.toLowerCase().includes("already registered")) {
+          toast.error("Cette adresse email est déjà utilisée");
+        } else {
+          showError(error);
+        }
+        return;
       }
-    } catch (error: any) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      } else if (error.message?.includes("already registered")) {
-        toast.error("Cette adresse email est déjà utilisée");
-      } else {
-        toast.error(error.message || "Erreur lors de l'inscription");
+
+      if (data?.user) {
+        toast.success("Inscription réussie !", {
+          description: "Veuillez vérifier votre email pour confirmer votre compte.",
+          duration: 6000
+        });
       }
+    } catch (error) {
+      showError(error, "Inscription");
     } finally {
       setLoading(false);
     }
@@ -79,37 +137,84 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-
     try {
-      const validated = signInSchema.parse({ email, password });
+      // 1. Extraction des données
+      const formData = new FormData(e.currentTarget);
+      let email = formData.get("email") as string;
+      const password = formData.get("password") as string;
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: validated.email,
-        password: validated.password,
-      });
+      // 2. Sanitisation de l'email
+      const cleanEmail = sanitizeEmail(email);
+      if (!cleanEmail) {
+        toast.error("Email invalide");
+        return;
+      }
+      email = cleanEmail;
 
-      if (error) throw error;
-
-      // Vérifier si l'email est confirmé
-      if (data.user && !data.user.email_confirmed_at) {
-        await supabase.auth.signOut();
-        toast.error("Veuillez confirmer votre email avant de vous connecter. Vérifiez votre boîte mail.");
+      // 3. Rate Limiting - Protection contre le brute force
+      try {
+        checkRateLimit(
+          authRateLimiter,
+          email,
+          "Trop de tentatives de connexion. Réessayez dans quelques minutes."
+        );
+      } catch (rateLimitError: any) {
+        toast.error(rateLimitError.message, {
+          duration: 10000,
+          icon: <ShieldAlert className="h-5 w-5 text-destructive" />
+        });
         return;
       }
 
-      toast.success("Connexion réussie !");
-      navigate("/");
-    } catch (error: any) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      } else if (error.message?.includes("Invalid login credentials")) {
-        toast.error("Email ou mot de passe incorrect");
-      } else {
-        toast.error(error.message || "Erreur lors de la connexion");
+      // 4. Validation Zod avec schéma PCCI
+      const validated = pcciSignInSchema.parse({ email, password });
+
+      // 5. Connexion avec gestion d'erreurs sécurisée
+      const { data, error } = await safeAsync(async () => {
+        const result = await supabase.auth.signInWithPassword({
+          email: validated.email,
+          password: validated.password,
+        });
+
+        if (result.error) throw result.error;
+        return result.data;
+      }, "Connexion");
+
+      if (error) {
+        // Gestion spécifique des erreurs de connexion
+        if (error.message?.toLowerCase().includes("invalid") || 
+            error.message?.toLowerCase().includes("credentials")) {
+          toast.error("Email ou mot de passe incorrect", {
+            icon: <AlertCircle className="h-5 w-5" />
+          });
+        } else {
+          showError(error);
+        }
+        return;
       }
+
+      // 6. Vérification email confirmé
+      if (data?.user && !data.user.email_confirmed_at) {
+        await supabase.auth.signOut();
+        toast.error("Email non confirmé", {
+          description: "Veuillez confirmer votre email avant de vous connecter. Vérifiez votre boîte mail.",
+          duration: 8000
+        });
+        return;
+      }
+
+      // 7. Reset du rate limiter en cas de succès
+      authRateLimiter.reset(email);
+
+      // 8. Succès !
+      toast.success("Connexion réussie !", {
+        description: `Bienvenue ${data?.user?.user_metadata?.full_name || ''} !`,
+        icon: <ShieldCheck className="h-5 w-5 text-success" />
+      });
+      
+      navigate("/");
+    } catch (error) {
+      showError(error, "Connexion");
     } finally {
       setLoading(false);
     }
@@ -201,15 +306,70 @@ export default function Auth() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Mot de passe</Label>
+                  <div className="relative">
+                    <Input
+                      id="signup-password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      disabled={loading}
+                      minLength={8}
+                      value={signUpPassword}
+                      onChange={(e) => handlePasswordChange(e.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  
+                  {signUpPassword && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Force du mot de passe:</span>
+                        <span className={
+                          passwordStrength.score >= 3 ? "text-success font-semibold" :
+                          passwordStrength.score >= 2 ? "text-warning" :
+                          "text-destructive"
+                        }>
+                          {passwordStrength.score === 0 ? "Très faible" :
+                           passwordStrength.score === 1 ? "Faible" :
+                           passwordStrength.score === 2 ? "Moyen" :
+                           passwordStrength.score === 3 ? "Bon" : "Excellent"}
+                        </span>
+                      </div>
+                      <Progress 
+                        value={passwordStrength.score * 25} 
+                        className="h-2"
+                      />
+                      {passwordStrength.feedback.length > 0 && (
+                        <ul className="text-xs text-muted-foreground space-y-1">
+                          {passwordStrength.feedback.map((tip, i) => (
+                            <li key={i}>• {tip}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Min 8 caractères, avec majuscule, minuscule et chiffre
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="signup-confirm-password">Confirmer le mot de passe</Label>
                   <Input
-                    id="signup-password"
-                    name="password"
-                    type="password"
+                    id="signup-confirm-password"
+                    name="confirmPassword"
+                    type={showPassword ? "text" : "password"}
                     required
                     disabled={loading}
-                    minLength={6}
                   />
-                  <p className="text-xs text-muted-foreground">Minimum 6 caractères</p>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Inscription..." : "S'inscrire"}
