@@ -14,6 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useNativeCamera } from "@/hooks/useNativeCamera";
 import { isNative } from "@/lib/capacitor-native";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
+import { showError, safeAsync } from "@/utils/errorHandler";
+import { escapeHtml, sanitizeString, validateFileType, validateFileSize, generateSecureFilename } from "@/utils/sanitizer";
+import { newPasswordSchema } from "@/schemas/authSchemas";
+import { z } from "zod";
 
 type AppRole = 'agent' | 'supervisor' | 'admin';
 
@@ -49,48 +53,61 @@ export default function Profile() {
 
   const fetchProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      // Get authenticated user
+      const { data: user, error: userError } = await safeAsync(async () => {
+        const result = await supabase.auth.getUser();
+        if (result.error) throw result.error;
+        if (!result.data.user) throw new Error("Non authentifié");
+        return result.data.user;
+      }, "Chargement utilisateur");
+
+      if (userError || !user) {
         navigate("/auth");
         return;
       }
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
+      // Fetch profile data
+      const { data: profileData, error: profileError } = await safeAsync(async () => {
+        const result = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (result.error) throw result.error;
+        return result.data;
+      }, "Chargement du profil");
 
-      if (error) throw error;
+      if (profileError) {
+        showError(profileError, "Erreur de chargement du profil");
+        return;
+      }
 
-      if (data) {
+      if (profileData) {
         setProfile({
-          full_name: data.full_name || "",
-          email: data.email || "",
-          department: data.department || "",
-          avatar_url: data.avatar_url || "",
-          pcci_id: data.pcci_id || "",
-          gender: data.gender || "",
+          full_name: sanitizeString(profileData.full_name || ""),
+          email: sanitizeString(profileData.email || ""),
+          department: sanitizeString(profileData.department || ""),
+          avatar_url: profileData.avatar_url || "",
+          pcci_id: sanitizeString(profileData.pcci_id || ""),
+          gender: sanitizeString(profileData.gender || ""),
         });
       }
 
-      // Fetch user role from user_roles table
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      // Fetch user role
+      const { data: roleData } = await safeAsync(async () => {
+        const result = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        return result.data;
+      }, "Chargement du rôle");
 
       if (roleData) {
         setUserRole(roleData.role as AppRole);
       }
     } catch (error) {
-      console.error("Error fetching profile:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger le profil",
-        variant: "destructive",
-      });
+      showError(error, "Chargement du profil");
     } finally {
       setLoading(false);
     }
@@ -101,41 +118,72 @@ export default function Profile() {
     setSaving(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      // Validate inputs
+      const profileSchema = z.object({
+        full_name: z.string().trim().min(2, "Le nom doit contenir au moins 2 caractères").max(100, "Le nom ne doit pas dépasser 100 caractères"),
+        department: z.string().max(100).optional(),
+        pcci_id: z.string().max(50).optional(),
+        gender: z.enum(["Homme", "Femme", "Autre", ""]).optional(),
+      });
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          full_name: profile.full_name,
-          department: profile.department,
-          pcci_id: profile.pcci_id,
-          gender: profile.gender,
-        })
-        .eq("id", user.id);
+      const validatedData = profileSchema.parse({
+        full_name: profile.full_name,
+        department: profile.department,
+        pcci_id: profile.pcci_id,
+        gender: profile.gender,
+      });
 
-      if (error) throw error;
+      // Get user with error handling
+      const { data: user, error: userError } = await safeAsync(async () => {
+        const result = await supabase.auth.getUser();
+        if (result.error) throw result.error;
+        if (!result.data.user) throw new Error("Non authentifié");
+        return result.data.user;
+      }, "Authentification");
+
+      if (userError || !user) {
+        showError(userError || new Error("Non authentifié"), "Authentification");
+        return;
+      }
+
+      // Update profile with error handling
+      const { error: updateError } = await safeAsync(async () => {
+        const result = await supabase
+          .from("profiles")
+          .update({
+            full_name: validatedData.full_name,
+            department: validatedData.department || null,
+            pcci_id: validatedData.pcci_id || null,
+            gender: validatedData.gender || null,
+          })
+          .eq("id", user.id);
+        if (result.error) throw result.error;
+        return result;
+      }, "Mise à jour du profil");
+
+      if (updateError) {
+        showError(updateError, "Mise à jour du profil");
+        return;
+      }
 
       toast({
         title: "Profil mis à jour",
         description: "Vos informations ont été enregistrées avec succès",
       });
     } catch (error) {
-      console.error("Error updating profile:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour le profil",
-        variant: "destructive",
-      });
+      showError(error, "Mise à jour du profil");
     } finally {
       setSaving(false);
     }
   };
 
   const uploadAvatar = async (file: File | Blob, userId: string) => {
-    const fileExt = file instanceof File ? file.name.split('.').pop() : 'jpg';
-    const fileName = `${userId}/${Date.now()}.${fileExt}`;
+    // Generate secure filename
+    const originalName = file instanceof File ? file.name : 'avatar.jpg';
+    const secureFileName = generateSecureFilename(originalName, userId);
+    const fileName = `${userId}/${secureFileName}`;
 
+    // Upload with error handling
     const { error: uploadError } = await supabase.storage
       .from('avatars')
       .upload(fileName, file, { upsert: true });
@@ -152,17 +200,64 @@ export default function Profile() {
   const handleAvatarUpload = async (file: File) => {
     setUploadingAvatar(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      // Validate file type
+      if (!validateFileType(file, ['image/jpeg', 'image/png', 'image/webp'])) {
+        toast({
+          title: "Erreur",
+          description: "Seuls les fichiers JPEG, PNG et WebP sont acceptés",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      const avatarUrl = await uploadAvatar(file, user.id);
+      // Validate file size (5MB max)
+      if (!validateFileSize(file, 5 * 1024 * 1024)) {
+        toast({
+          title: "Erreur",
+          description: "La photo ne doit pas dépasser 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({ avatar_url: avatarUrl })
-        .eq("id", user.id);
+      // Get user with error handling
+      const { data: user, error: userError } = await safeAsync(async () => {
+        const result = await supabase.auth.getUser();
+        if (result.error) throw result.error;
+        if (!result.data.user) throw new Error("Non authentifié");
+        return result.data.user;
+      }, "Authentification");
 
-      if (error) throw error;
+      if (userError || !user) {
+        showError(userError || new Error("Non authentifié"), "Authentification");
+        return;
+      }
+
+      // Upload avatar with error handling
+      const { data: avatarUrl, error: uploadError } = await safeAsync(
+        async () => await uploadAvatar(file, user.id),
+        "Upload de la photo"
+      );
+
+      if (uploadError || !avatarUrl) {
+        showError(uploadError || new Error("Échec de l'upload"), "Upload de la photo");
+        return;
+      }
+
+      // Update profile with error handling
+      const { error: updateError } = await safeAsync(async () => {
+        const result = await supabase
+          .from("profiles")
+          .update({ avatar_url: avatarUrl })
+          .eq("id", user.id);
+        if (result.error) throw result.error;
+        return result;
+      }, "Mise à jour du profil");
+
+      if (updateError) {
+        showError(updateError, "Mise à jour du profil");
+        return;
+      }
 
       setProfile({ ...profile, avatar_url: avatarUrl });
       toast({
@@ -170,12 +265,7 @@ export default function Profile() {
         description: "Votre photo de profil a été modifiée avec succès",
       });
     } catch (error) {
-      console.error("Error uploading avatar:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger la photo",
-        variant: "destructive",
-      });
+      showError(error, "Upload de la photo");
     } finally {
       setUploadingAvatar(false);
     }
@@ -184,7 +274,18 @@ export default function Profile() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
+      // Validate file type
+      if (!validateFileType(file, ['image/jpeg', 'image/png', 'image/webp'])) {
+        toast({
+          title: "Erreur",
+          description: "Seuls les fichiers JPEG, PNG et WebP sont acceptés",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate file size
+      if (!validateFileSize(file, 5 * 1024 * 1024)) {
         toast({
           title: "Erreur",
           description: "La photo ne doit pas dépasser 5MB",
@@ -192,11 +293,19 @@ export default function Profile() {
         });
         return;
       }
+
       // Open crop dialog
       const reader = new FileReader();
       reader.onload = () => {
         setImageToCrop(reader.result as string);
         setCropDialogOpen(true);
+      };
+      reader.onerror = () => {
+        toast({
+          title: "Erreur",
+          description: "Impossible de lire le fichier",
+          variant: "destructive",
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -220,55 +329,49 @@ export default function Profile() {
       setImageToCrop(photoUri);
       setCropDialogOpen(true);
     } catch (error) {
-      console.error("Error capturing photo:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de capturer la photo",
-        variant: "destructive",
-      });
+      showError(error, "Capture de photo");
     }
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast({
-        title: "Erreur",
-        description: "Les mots de passe ne correspondent pas",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (passwordForm.newPassword.length < 6) {
-      toast({
-        title: "Erreur",
-        description: "Le nouveau mot de passe doit contenir au moins 6 caractères",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setChangingPassword(true);
 
     try {
-      // Verify current password by attempting to sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: profile.email,
-        password: passwordForm.currentPassword,
+      // Validate password with schema
+      const validatedData = newPasswordSchema.parse({
+        newPassword: passwordForm.newPassword,
+        confirmPassword: passwordForm.confirmPassword,
       });
+
+      // Verify current password
+      const { error: signInError } = await safeAsync(async () => {
+        const result = await supabase.auth.signInWithPassword({
+          email: profile.email,
+          password: passwordForm.currentPassword,
+        });
+        if (result.error) throw new Error("Le mot de passe actuel est incorrect");
+        return result;
+      }, "Vérification du mot de passe");
 
       if (signInError) {
-        throw new Error("Le mot de passe actuel est incorrect");
+        showError(signInError, "Vérification du mot de passe");
+        return;
       }
 
-      // Update password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: passwordForm.newPassword,
-      });
+      // Update password with error handling
+      const { error: updateError } = await safeAsync(async () => {
+        const result = await supabase.auth.updateUser({
+          password: validatedData.newPassword,
+        });
+        if (result.error) throw result.error;
+        return result;
+      }, "Changement du mot de passe");
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        showError(updateError, "Changement du mot de passe");
+        return;
+      }
 
       toast({
         title: "Mot de passe modifié",
@@ -281,13 +384,8 @@ export default function Profile() {
         newPassword: "",
         confirmPassword: "",
       });
-    } catch (error: any) {
-      console.error("Error changing password:", error);
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de changer le mot de passe",
-        variant: "destructive",
-      });
+    } catch (error) {
+      showError(error, "Changement du mot de passe");
     } finally {
       setChangingPassword(false);
     }
@@ -334,7 +432,7 @@ export default function Profile() {
               <Avatar className="h-24 w-24 ring-4 ring-primary/20">
                 <AvatarImage src={profile.avatar_url} />
                 <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                  {profile.full_name ? getInitials(profile.full_name) : "U"}
+                  <span dangerouslySetInnerHTML={{ __html: escapeHtml(profile.full_name ? getInitials(profile.full_name) : "U") }} />
                 </AvatarFallback>
               </Avatar>
               
@@ -452,7 +550,9 @@ export default function Profile() {
                         : 'bg-gray-100 text-gray-800'
                     }
                   >
-                    {userRole === 'admin' ? 'Administrateur' : userRole === 'supervisor' ? 'Superviseur' : 'Agent'}
+                    <span dangerouslySetInnerHTML={{ 
+                      __html: escapeHtml(userRole === 'admin' ? 'Administrateur' : userRole === 'supervisor' ? 'Superviseur' : 'Agent') 
+                    }} />
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
