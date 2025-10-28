@@ -8,10 +8,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 import pcciLogo from "@/assets/pcci-logo.png";
+import { showError, safeAsync } from "@/utils/errorHandler";
+import { checkPasswordStrength } from "@/utils/security";
 
 const passwordSchema = z.object({
-  password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
-  confirmPassword: z.string().min(6),
+  password: z.string()
+    .min(8, { message: "Le mot de passe doit contenir au moins 8 caractères" })
+    .max(128, { message: "Le mot de passe ne doit pas dépasser 128 caractères" })
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      "Le mot de passe doit contenir au moins une minuscule, une majuscule et un chiffre"
+    ),
+  confirmPassword: z.string().min(8),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Les mots de passe ne correspondent pas",
   path: ["confirmPassword"],
@@ -23,15 +31,23 @@ export default function ResetPassword() {
   const [isValidToken, setIsValidToken] = useState(false);
 
   useEffect(() => {
-    // Verify if we have a valid recovery token
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Verify if we have a valid recovery token with error handling
+    const checkSession = async () => {
+      const { data: session, error } = await safeAsync(async () => {
+        const result = await supabase.auth.getSession();
+        if (result.error) throw result.error;
+        return result.data.session;
+      }, "Vérification de session");
+
       if (session) {
         setIsValidToken(true);
       } else {
         toast.error("Lien invalide ou expiré");
         navigate("/auth");
       }
-    });
+    };
+
+    checkSession();
   }, [navigate]);
 
   const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -43,13 +59,29 @@ export default function ResetPassword() {
     const confirmPassword = formData.get("confirmPassword") as string;
 
     try {
+      // Validate password with strong requirements
       const validated = passwordSchema.parse({ password, confirmPassword });
 
-      const { error } = await supabase.auth.updateUser({
-        password: validated.password,
-      });
+      // Check password strength
+      const strength = checkPasswordStrength(validated.password);
+      if (strength.score < 3) {
+        toast.error("Le mot de passe est trop faible. " + strength.feedback.join(", "));
+        return;
+      }
 
-      if (error) throw error;
+      // Update password with error handling
+      const { error: updateError } = await safeAsync(async () => {
+        const result = await supabase.auth.updateUser({
+          password: validated.password,
+        });
+        if (result.error) throw result.error;
+        return result;
+      }, "Réinitialisation du mot de passe");
+
+      if (updateError) {
+        showError(updateError, "Réinitialisation du mot de passe");
+        return;
+      }
 
       toast.success("Mot de passe réinitialisé avec succès !");
       navigate("/auth");
@@ -57,7 +89,7 @@ export default function ResetPassword() {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
       } else {
-        toast.error(error.message || "Erreur lors de la réinitialisation");
+        showError(error, "Réinitialisation du mot de passe");
       }
     } finally {
       setLoading(false);
