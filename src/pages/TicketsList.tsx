@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Plus, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
+import { showError, safeAsync } from "@/utils/errorHandler";
+import { escapeHtml, sanitizeString } from "@/utils/sanitizer";
 
 export default function TicketsList() {
   const navigate = useNavigate();
@@ -26,9 +28,17 @@ export default function TicketsList() {
 
   const fetchTickets = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      // Get user with error handling
+      const { data: user, error: userError } = await safeAsync(async () => {
+        const result = await supabase.auth.getUser();
+        if (result.error) throw result.error;
+        if (!result.data.user) throw new Error("Non authentifié");
+        return result.data.user;
+      }, "Authentification");
 
+      if (userError || !user) return;
+
+      // Build query with filters
       let query = supabase
         .from("tickets")
         .select(`
@@ -53,13 +63,39 @@ export default function TicketsList() {
           .not("status", "in", '("Resolved","Closed","Canceled")');
       }
 
-      const { data, error } = await query;
+      // Execute query with error handling
+      const { data, error: ticketsError } = await safeAsync(async () => {
+        const result = await query;
+        if (result.error) throw result.error;
+        return result.data;
+      }, "Chargement des tickets");
 
-      if (error) throw error;
-      setTickets(data || []);
-    } catch (error: any) {
-      toast.error("Erreur lors du chargement des tickets");
-      console.error(error);
+      if (ticketsError) {
+        showError(ticketsError, "Chargement des tickets");
+        return;
+      }
+
+      // Sanitize ticket data
+      const sanitizedTickets = (data || []).map(ticket => ({
+        ...ticket,
+        code: sanitizeString(ticket.code || ""),
+        title: sanitizeString(ticket.title || ""),
+        priority: sanitizeString(ticket.priority || ""),
+        status: sanitizeString(ticket.status || ""),
+        requester: ticket.requester ? {
+          full_name: sanitizeString(ticket.requester.full_name || "")
+        } : null,
+        assignee: ticket.assignee ? {
+          full_name: sanitizeString(ticket.assignee.full_name || "")
+        } : null,
+        category: ticket.category ? {
+          name: sanitizeString(ticket.category.name || "")
+        } : null,
+      }));
+
+      setTickets(sanitizedTickets);
+    } catch (error) {
+      showError(error, "Chargement des tickets");
     } finally {
       setLoading(false);
     }
@@ -194,20 +230,24 @@ export default function TicketsList() {
                   >
                     <div className="flex items-start justify-between">
                       <div className="space-y-2 flex-1">
-                        <p className="text-lg font-semibold">{ticket.title}</p>
+                        <p className="text-lg font-semibold">
+                          <span dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.title) }} />
+                        </p>
                         <div className="flex items-center gap-3">
-                          <p className="text-xs text-muted-foreground">{ticket.code}</p>
+                          <p className="text-xs text-muted-foreground">
+                            <span dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.code) }} />
+                          </p>
                           <Badge className={getPriorityColor(ticket.priority)} variant="secondary">
-                            {ticket.priority}
+                            <span dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.priority) }} />
                           </Badge>
                           <Badge className={getStatusColor(ticket.status)} variant="outline">
-                            {ticket.status.replace("_", " ")}
+                            <span dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.status.replace("_", " ")) }} />
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>Catégorie: {ticket.category?.name || "Non classé"}</span>
+                          <span>Catégorie: <span dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.category?.name || "Non classé") }} /></span>
                           <span>•</span>
-                          <span>Assigné à: {ticket.assignee?.full_name || "Non assigné"}</span>
+                          <span>Assigné à: <span dangerouslySetInnerHTML={{ __html: escapeHtml(ticket.assignee?.full_name || "Non assigné") }} /></span>
                         </div>
                       </div>
                       <div className="text-right text-sm text-muted-foreground">
