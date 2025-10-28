@@ -1,12 +1,41 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.089331a48d894957903a0273f3dabe4d',
-  appName: 'pcci-support-hero',
+  appId: 'com.pcci.helpdesk',
+  appName: 'PCCI Help Desk',
   webDir: 'dist',
   server: {
-    url: 'https://089331a4-8d89-4957-903a-0273f3dabe4d.lovableproject.com?forceHideBadge=true',
-    cleartext: true
+    androidScheme: 'https',
+    // Pour le développement, décommentez la ligne suivante et remplacez par votre IP
+    // url: 'http://192.168.1.100:5173',
+    // cleartext: true
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 2000,
+      launchAutoHide: true,
+      backgroundColor: "#0066cc",
+      androidSplashResourceName: "splash",
+      androidScaleType: "CENTER_CROP",
+      showSpinner: false,
+      androidSpinnerStyle: "large",
+      iosSpinnerStyle: "small",
+      spinnerColor: "#ffffff",
+      splashFullScreen: true,
+      splashImmersive: true,
+    },
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"],
+    },
+  },
+  android: {
+    buildOptions: {
+      keystorePath: undefined,
+      keystorePassword: undefined,
+      keystoreAlias: undefined,
+      keystoreAliasPassword: undefined,
+      releaseType: 'APK'
+    }
   }
 };
 
