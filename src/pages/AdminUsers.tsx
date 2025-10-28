@@ -263,40 +263,58 @@ export default function AdminUsers() {
   const updateUserPassword = async () => {
     if (!editingPassword) return;
 
-    if (newPassword.length < 6) {
-      toast({
-        title: "Erreur",
-        description: "Le mot de passe doit contenir au moins 6 caractères",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("No active session");
+      // Validate password with Zod (stronger requirements)
+      const passwordSchema = z.string()
+        .min(8, "Le mot de passe doit contenir au moins 8 caractères")
+        .max(128, "Le mot de passe ne doit pas dépasser 128 caractères")
+        .regex(
+          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+          "Le mot de passe doit contenir au moins une minuscule, une majuscule et un chiffre"
+        );
+      
+      const validatedPassword = passwordSchema.parse(newPassword);
+
+      // Get session with error handling
+      const { data: session, error: sessionError } = await safeAsync(async () => {
+        const result = await supabase.auth.getSession();
+        if (result.error) throw result.error;
+        if (!result.data.session) throw new Error("No active session");
+        return result.data.session;
+      }, "Vérification de session");
+
+      if (sessionError || !session) {
+        showError(sessionError || new Error("Session expirée"), "Session");
+        return;
       }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user-password`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            userId: editingPassword.userId,
-            newPassword: newPassword
-          }),
+      // Update password via API
+      const { error: updateError } = await safeAsync(async () => {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user-password`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              userId: editingPassword.userId,
+              newPassword: validatedPassword
+            }),
+          }
+        );
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to update password');
         }
-      );
+        return result;
+      }, "Mise à jour du mot de passe");
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to update password');
+      if (updateError) {
+        showError(updateError, "Mise à jour du mot de passe");
+        return;
       }
 
       toast({
@@ -308,12 +326,7 @@ export default function AdminUsers() {
       setEditingPassword(null);
       setNewPassword("");
     } catch (error) {
-      console.error("Error updating password:", error);
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de modifier le mot de passe",
-        variant: "destructive",
-      });
+      showError(error, "Mise à jour du mot de passe");
     }
   };
 
@@ -445,14 +458,22 @@ export default function AdminUsers() {
                         >
                           <Avatar>
                             <AvatarImage src={user.avatar_url || undefined} alt={user.full_name} />
-                            <AvatarFallback>{user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
+                            <AvatarFallback>
+                              <span dangerouslySetInnerHTML={{ __html: escapeHtml(user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()) }} />
+                            </AvatarFallback>
                           </Avatar>
-                          <span className="underline">{user.full_name}</span>
+                          <span className="underline" dangerouslySetInnerHTML={{ __html: escapeHtml(user.full_name) }} />
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-muted-foreground">{user.email}</td>
-                      <td className="py-3 px-4">{user.pcci_id || '-'}</td>
-                      <td className="py-3 px-4">{user.department || '-'}</td>
+                      <td className="py-3 px-4 text-muted-foreground">
+                        <span dangerouslySetInnerHTML={{ __html: escapeHtml(user.email) }} />
+                      </td>
+                      <td className="py-3 px-4">
+                        <span dangerouslySetInnerHTML={{ __html: escapeHtml(user.pcci_id || '-') }} />
+                      </td>
+                      <td className="py-3 px-4">
+                        <span dangerouslySetInnerHTML={{ __html: escapeHtml(user.department || '-') }} />
+                      </td>
                       <td className="py-3 px-4">
                         <Select
                           value={user.roles[0]}
@@ -517,7 +538,11 @@ export default function AdminUsers() {
                                 <AlertDialogTitle>Supprimer le compte ?</AlertDialogTitle>
                                 <AlertDialogDescription>
                                   Cette action est irréversible. Toutes les données de l'utilisateur 
-                                  <strong> {user.full_name} ({user.email}) </strong> seront définitivement supprimées.
+                                  <strong>
+                                    {" "}<span dangerouslySetInnerHTML={{ __html: escapeHtml(user.full_name) }} />
+                                    {" ("}<span dangerouslySetInnerHTML={{ __html: escapeHtml(user.email) }} />{") "}
+                                  </strong>
+                                  seront définitivement supprimées.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -624,11 +649,13 @@ export default function AdminUsers() {
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={selectedUser.avatar_url || undefined} alt={selectedUser.full_name} />
                   <AvatarFallback className="text-2xl">
-                    {selectedUser.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    <span dangerouslySetInnerHTML={{ __html: escapeHtml(selectedUser.full_name.split(' ').map(n => n[0]).join('').toUpperCase()) }} />
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="text-2xl font-semibold">{selectedUser.full_name}</h3>
+                  <h3 className="text-2xl font-semibold">
+                    <span dangerouslySetInnerHTML={{ __html: escapeHtml(selectedUser.full_name) }} />
+                  </h3>
                   <Badge variant={selectedUser.is_active ? "default" : "secondary"} className="mt-1">
                     {selectedUser.is_active ? "Actif" : "Inactif"}
                   </Badge>
@@ -638,22 +665,22 @@ export default function AdminUsers() {
               <div className="grid gap-4">
                 <div className="grid grid-cols-3 gap-2">
                   <span className="font-semibold text-muted-foreground">Email:</span>
-                  <span className="col-span-2">{selectedUser.email}</span>
+                  <span className="col-span-2" dangerouslySetInnerHTML={{ __html: escapeHtml(selectedUser.email) }} />
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   <span className="font-semibold text-muted-foreground">ID PCCI:</span>
-                  <span className="col-span-2">{selectedUser.pcci_id || '-'}</span>
+                  <span className="col-span-2" dangerouslySetInnerHTML={{ __html: escapeHtml(selectedUser.pcci_id || '-') }} />
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   <span className="font-semibold text-muted-foreground">Département:</span>
-                  <span className="col-span-2">{selectedUser.department || '-'}</span>
+                  <span className="col-span-2" dangerouslySetInnerHTML={{ __html: escapeHtml(selectedUser.department || '-') }} />
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   <span className="font-semibold text-muted-foreground">Genre:</span>
-                  <span className="col-span-2">{selectedUser.gender || '-'}</span>
+                  <span className="col-span-2" dangerouslySetInnerHTML={{ __html: escapeHtml(selectedUser.gender || '-') }} />
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
