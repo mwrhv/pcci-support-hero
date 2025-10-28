@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Database, Download, Upload, Trash2, HardDrive } from "lucide-react";
+import { showError, safeAsync } from "@/utils/errorHandler";
+import { sanitizeString } from "@/utils/sanitizer";
 
 export default function DatabaseSettings() {
   const navigate = useNavigate();
