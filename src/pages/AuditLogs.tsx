@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Shield, Loader2, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { showError, safeAsync } from "@/utils/errorHandler";
+import { escapeHtml, sanitizeString } from "@/utils/sanitizer";
 
 interface AuditLog {
   id: string;
@@ -33,71 +35,103 @@ export default function AuditLogs() {
   }, []);
 
   const checkAccess = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
+    try {
+      // Get user with error handling
+      const { data: user, error: userError } = await safeAsync(async () => {
+        const result = await supabase.auth.getUser();
+        if (result.error) throw result.error;
+        if (!result.data.user) throw new Error("Non authentifié");
+        return result.data.user;
+      }, "Authentification");
 
-    // Check if user is supervisor or admin
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .in("role", ["supervisor", "admin"]);
+      if (userError || !user) {
+        navigate("/auth");
+        return;
+      }
 
-    if (!roles || roles.length === 0) {
-      toast({
-        title: "Accès refusé",
-        description: "Seuls les superviseurs et administrateurs peuvent accéder aux logs",
-        variant: "destructive",
-      });
+      // Check if user is supervisor or admin with error handling
+      const { data: roles, error: rolesError } = await safeAsync(async () => {
+        const result = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .in("role", ["supervisor", "admin"]);
+        if (result.error) throw result.error;
+        return result.data;
+      }, "Vérification du rôle");
+
+      if (!roles || roles.length === 0) {
+        toast({
+          title: "Accès refusé",
+          description: "Seuls les superviseurs et administrateurs peuvent accéder aux logs",
+          variant: "destructive",
+        });
+        navigate("/");
+        return;
+      }
+
+      setHasAccess(true);
+      fetchLogs();
+    } catch (error) {
+      showError(error, "Vérification des accès");
       navigate("/");
-      return;
     }
-
-    setHasAccess(true);
-    fetchLogs();
   };
 
   const fetchLogs = async () => {
     try {
-      const { data: logsData, error: logsError } = await supabase
-        .from("audit_logs")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(100);
+      // Fetch logs with error handling
+      const { data: logsData, error: logsError } = await safeAsync(async () => {
+        const result = await supabase
+          .from("audit_logs")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(100);
+        if (result.error) throw result.error;
+        return result.data;
+      }, "Chargement des logs");
 
-      if (logsError) throw logsError;
+      if (logsError || !logsData) {
+        showError(logsError || new Error("Aucune donnée"), "Chargement des logs");
+        return;
+      }
 
       // Get actor profiles for logs with actor_id
-      const actorIds = [...new Set(logsData?.map(log => log.actor_id).filter(Boolean))];
+      const actorIds = [...new Set(logsData.map(log => log.actor_id).filter(Boolean))];
       
       if (actorIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, full_name, email")
-          .in("id", actorIds);
+        const { data: profiles } = await safeAsync(async () => {
+          const result = await supabase
+            .from("profiles")
+            .select("id, full_name, email")
+            .in("id", actorIds);
+          if (result.error) throw result.error;
+          return result.data;
+        }, "Chargement des profils");
 
         const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
-        const logsWithActors = logsData?.map(log => ({
+        // Sanitize log data
+        const logsWithActors = logsData.map(log => ({
           ...log,
-          actor_name: log.actor_id ? profilesMap.get(log.actor_id)?.full_name : null,
-          actor_email: log.actor_id ? profilesMap.get(log.actor_id)?.email : null,
+          action: sanitizeString(log.action || ""),
+          entity_type: sanitizeString(log.entity_type || ""),
+          actor_name: log.actor_id ? sanitizeString(profilesMap.get(log.actor_id)?.full_name || "") : null,
+          actor_email: log.actor_id ? sanitizeString(profilesMap.get(log.actor_id)?.email || "") : null,
         }));
 
-        setLogs(logsWithActors || []);
+        setLogs(logsWithActors);
       } else {
-        setLogs(logsData || []);
+        // Sanitize log data without actors
+        const sanitizedLogs = logsData.map(log => ({
+          ...log,
+          action: sanitizeString(log.action || ""),
+          entity_type: sanitizeString(log.entity_type || ""),
+        }));
+        setLogs(sanitizedLogs);
       }
     } catch (error) {
-      console.error("Error fetching logs:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les logs",
-        variant: "destructive",
-      });
+      showError(error, "Chargement des logs");
     } finally {
       setLoading(false);
     }
@@ -155,17 +189,18 @@ export default function AuditLogs() {
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge className={getActionBadgeColor(log.action)}>
-                            {log.action}
+                            <span dangerouslySetInnerHTML={{ __html: escapeHtml(log.action) }} />
                           </Badge>
                           <span className="text-sm text-muted-foreground">
-                            sur <strong>{log.entity_type}</strong>
+                            sur <strong><span dangerouslySetInnerHTML={{ __html: escapeHtml(log.entity_type) }} /></strong>
                           </span>
                         </div>
                         
                         {log.actor_name && (
                           <p className="text-sm">
                             <span className="text-muted-foreground">Par:</span>{" "}
-                            <strong>{log.actor_name}</strong> ({log.actor_email})
+                            <strong><span dangerouslySetInnerHTML={{ __html: escapeHtml(log.actor_name) }} /></strong>
+                            {" ("}<span dangerouslySetInnerHTML={{ __html: escapeHtml(log.actor_email || "") }} />{") "}
                           </p>
                         )}
                         
