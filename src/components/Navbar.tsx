@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, User, Settings, FileText } from "lucide-react";
+import { LogOut, User, Settings, FileText, Brain } from "lucide-react";
 import { toast } from "sonner";
 import pcciLogo from "@/assets/pcci-logo.png";
 import { NativeStatusBadge } from "@/components/NativeStatusBadge";
@@ -126,6 +126,12 @@ export const Navbar = () => {
                       Paramètres Base de Données
                     </DropdownMenuItem>
                   </>
+                )}
+                {isSupervisorOrAdmin && (
+                  <DropdownMenuItem onClick={() => navigate("/admin/genspark")}>
+                    <Brain className="mr-2 h-4 w-4" />
+                    Genspark AI Analysis
+                  </DropdownMenuItem>
                 )}
                 {isAdmin && (
                   <DropdownMenuItem onClick={() => navigate("/admin/logs")}>
