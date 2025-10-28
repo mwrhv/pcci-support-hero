@@ -26,13 +26,26 @@ export default function ForgotPassword() {
     const email = formData.get("email") as string;
 
     try {
+      // Validate and sanitize email
       const validated = emailSchema.parse({ email });
+      const sanitizedEmail = sanitizeEmail(validated.email);
 
-      const { error } = await supabase.auth.resetPasswordForEmail(validated.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
+      // Rate limiting (5 attempts per 5 minutes)
+      checkRateLimit(authRateLimiter, sanitizedEmail, "Trop de tentatives de réinitialisation. Veuillez réessayer dans quelques minutes.");
 
-      if (error) throw error;
+      // Send reset email with error handling
+      const { error: resetError } = await safeAsync(async () => {
+        const result = await supabase.auth.resetPasswordForEmail(sanitizedEmail, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (result.error) throw result.error;
+        return result;
+      }, "Réinitialisation du mot de passe");
+
+      if (resetError) {
+        showError(resetError, "Réinitialisation du mot de passe");
+        return;
+      }
 
       setEmailSent(true);
       toast.success("Email envoyé ! Vérifiez votre boîte de réception.");
@@ -40,7 +53,7 @@ export default function ForgotPassword() {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
       } else {
-        toast.error(error.message || "Erreur lors de l'envoi de l'email");
+        showError(error, "Réinitialisation du mot de passe");
       }
     } finally {
       setLoading(false);
