@@ -218,9 +218,6 @@ export default function FicheDemission() {
       setCreatedFiche(ticketData);
       setShowActions(true);
       toast.success("Fiche créée avec succès!");
-
-      setCreatedFiche(data);
-      setShowActions(true);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);

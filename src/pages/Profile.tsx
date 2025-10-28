@@ -362,7 +362,7 @@ export default function Profile() {
       // Update password with error handling
       const { error: updateError } = await safeAsync(async () => {
         const result = await supabase.auth.updateUser({
-          password: validatedData.newPassword,
+          password: validatedData.password,
         });
         if (result.error) throw result.error;
         return result;

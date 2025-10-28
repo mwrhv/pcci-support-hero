@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Printer, Mail, HandshakeIcon, CheckCircle2, Paperclip, Download, FileText, FileImage, FileSpreadsheet, File } from "lucide-react";
 import { PrintPreview } from "@/components/PrintPreview";
+import { toast } from "sonner";
 
 // Import des fonctionnalités de sécurité
 import { showError, safeAsync } from "@/utils/errorHandler";
@@ -171,13 +172,8 @@ export default function TicketDetail() {
       if (refreshedData) {
         setTicket(refreshedData);
       }
-      
-      showError({ message: "Ticket pris en charge avec succès", type: "success" } as any);
-    } catch (error) {
-      showError(error);
-    } finally {
-      setTakingCharge(false);
-    }
+
+    setTakingCharge(false);
   };
 
   const handleResolve = async () => {

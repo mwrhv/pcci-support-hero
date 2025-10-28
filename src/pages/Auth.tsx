@@ -21,23 +21,28 @@ import {
 } from "@/utils/security";
 import { sanitizeEmail } from "@/utils/sanitizer";
 
-// Schéma spécifique PCCI avec validation email
-const pcciSignUpSchema = signUpSchema.extend({
-  userId: signUpSchema.shape.email.refine(
+// Schéma spécifique PCCI avec validation email - nous devons importer z depuis zod
+import { z } from "zod";
+
+const pcciSignUpSchema = z.object({
+  email: z.string().email().refine(
     (email) => email.endsWith("@pcci.sn"),
     { message: "Seuls les emails @pcci.sn sont autorisés" }
   ),
-  email: signUpSchema.shape.email.refine(
-    (email) => email.endsWith("@pcci.sn"),
-    { message: "Seuls les emails @pcci.sn sont autorisés" }
-  ),
+  password: z.string().min(8),
+  confirmPassword: z.string(),
+  fullName: z.string().min(2),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmPassword"],
 });
 
-const pcciSignInSchema = signInSchema.extend({
-  email: signInSchema.shape.email.refine(
+const pcciSignInSchema = z.object({
+  email: z.string().email().refine(
     (email) => email.endsWith("@pcci.sn"),
     { message: "Seuls les emails @pcci.sn sont autorisés" }
   ),
+  password: z.string().min(1),
 });
 
 export default function Auth() {
@@ -99,7 +104,7 @@ export default function Auth() {
           password: validated.password,
           options: {
             data: {
-              user_id: validated.userId || validated.email.split('@')[0],
+              user_id: validated.email.split('@')[0],
               full_name: validated.fullName,
             },
             emailRedirectTo: `${window.location.origin}/`,

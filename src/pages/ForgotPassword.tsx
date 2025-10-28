@@ -9,6 +9,9 @@ import { z } from "zod";
 import { ArrowLeft, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import pcciLogo from "@/assets/pcci-logo.png";
+import { sanitizeEmail } from "@/utils/sanitizer";
+import { authRateLimiter, checkRateLimit } from "@/utils/security";
+import { safeAsync, showError } from "@/utils/errorHandler";
 
 const emailSchema = z.object({
   email: z.string().trim().email({ message: "Email invalide" }).max(255),
