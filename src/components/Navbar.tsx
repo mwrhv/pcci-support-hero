@@ -111,6 +111,11 @@ export const Navbar = () => {
                   <User className="mr-2 h-4 w-4" />
                   Profil
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/time/clock")}>
+                  <Clock className="mr-2 h-4 w-4" />
+                  Pointage
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 {isAdmin && (
                   <>
                     <DropdownMenuItem onClick={() => navigate("/admin/users")}>

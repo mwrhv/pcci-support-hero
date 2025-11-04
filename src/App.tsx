@@ -21,6 +21,7 @@ import DatabaseSettings from "./pages/DatabaseSettings";
 import Statistics from "./pages/Statistics";
 import Profile from "./pages/Profile";
 import GensarkAnalysis from "./pages/GensarkAnalysis";
+import TimeClock from "./pages/TimeClock";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/admin/genspark" element={<GensarkAnalysis />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/time/clock" element={<TimeClock />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
