@@ -32,6 +32,7 @@ const pcciSignUpSchema = z.object({
   password: z.string().min(8),
   confirmPassword: z.string(),
   fullName: z.string().min(2),
+  userId: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Les mots de passe ne correspondent pas",
   path: ["confirmPassword"],
