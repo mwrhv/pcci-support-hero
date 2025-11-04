@@ -24,6 +24,7 @@ import GensarkAnalysis from "./pages/GensarkAnalysis";
 import TimeClock from "./pages/TimeClock";
 import TimeDashboard from "./pages/TimeDashboard";
 import LeaveManagement from "./pages/LeaveManagement";
+import TimeReports from "./pages/TimeReports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/time/clock" element={<TimeClock />} />
             <Route path="/time/dashboard" element={<TimeDashboard />} />
             <Route path="/time/leaves" element={<LeaveManagement />} />
+            <Route path="/time/reports" element={<TimeReports />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

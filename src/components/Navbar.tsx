@@ -123,6 +123,10 @@ export const Navbar = () => {
                   <Calendar className="mr-2 h-4 w-4" />
                   Gestion des Absences
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/time/reports")}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Rapports et Exports
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {isAdmin && (
                   <>
