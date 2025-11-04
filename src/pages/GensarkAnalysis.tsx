@@ -114,8 +114,7 @@ export default function GensarkAnalysis() {
       const result = await supabase
         .from("tickets")
         .select(`
-          *,
-          profiles:user_id(full_name, email, department, pcci_id)
+          *
         `)
         .order("created_at", { ascending: false })
         .limit(100);
@@ -134,17 +133,17 @@ export default function GensarkAnalysis() {
     const mappedTickets: TicketData[] = (ticketsData || []).map((ticket) => ({
       id: sanitizeString(ticket.id),
       code: sanitizeString(ticket.code || ""),
-      firstName: sanitizeString(ticket.profiles?.full_name?.split(" ")[0] || ""),
-      lastName: sanitizeString(ticket.profiles?.full_name?.split(" ").slice(1).join(" ") || ""),
-      userId: sanitizeString(ticket.user_id || ""),
-      department: sanitizeString(ticket.profiles?.department || "Non spécifié"),
-      location: sanitizeString(ticket.place || ""),
-      phone: sanitizeString(ticket.phone || ""),
-      email: sanitizeString(ticket.profiles?.email || ""),
+      firstName: sanitizeString(""),
+      lastName: sanitizeString(""),
+      userId: sanitizeString(ticket.requester_id || ""),
+      department: sanitizeString("Non spécifié"),
+      location: sanitizeString(""),
+      phone: sanitizeString(""),
+      email: sanitizeString(""),
       motif: sanitizeString(ticket.title || ""),
       description: sanitizeString(ticket.description || ""),
-      interventionDate: ticket.intervention_date || "",
-      status: ticket.status || "open",
+      interventionDate: ticket.due_at || "",
+      status: ticket.status as any,
       createdAt: ticket.created_at || "",
       updatedAt: ticket.updated_at || "",
     }));

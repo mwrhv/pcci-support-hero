@@ -382,3 +382,28 @@ export function formatTimestampToTime(timestamp: string): string {
   const d = new Date(timestamp);
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
+
+/**
+ * Alias pour formatDateFR
+ */
+export const formatDate = formatDateFR;
+
+/**
+ * Formate des minutes en durée lisible (ex: "2h 30min")
+ */
+export function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours > 0 && mins > 0) {
+    return `${hours}h ${mins}min`;
+  } else if (hours > 0) {
+    return `${hours}h`;
+  } else {
+    return `${mins}min`;
+  }
+}
+
+/**
+ * Alias pour formatTimestampToTime
+ */
+export const formatTime = formatTimestampToTime;
