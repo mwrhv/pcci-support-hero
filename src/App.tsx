@@ -25,6 +25,7 @@ import TimeClock from "./pages/TimeClock";
 import TimeDashboard from "./pages/TimeDashboard";
 import LeaveManagement from "./pages/LeaveManagement";
 import TimeReports from "./pages/TimeReports";
+import TimeSettings from "./pages/TimeSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/time/dashboard" element={<TimeDashboard />} />
             <Route path="/time/leaves" element={<LeaveManagement />} />
             <Route path="/time/reports" element={<TimeReports />} />
+            <Route path="/time/settings" element={<TimeSettings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

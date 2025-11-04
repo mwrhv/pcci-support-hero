@@ -127,6 +127,10 @@ export const Navbar = () => {
                   <FileSpreadsheet className="mr-2 h-4 w-4" />
                   Rapports et Exports
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/time/settings")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Paramètres Temps
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {isAdmin && (
                   <>
