@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, User, Settings, FileText, Brain } from "lucide-react";
+import { LogOut, User, Settings, FileText, Brain, Clock, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import pcciLogo from "@/assets/pcci-logo.png";
 import { NativeStatusBadge } from "@/components/NativeStatusBadge";
@@ -114,6 +114,10 @@ export const Navbar = () => {
                 <DropdownMenuItem onClick={() => navigate("/time/clock")}>
                   <Clock className="mr-2 h-4 w-4" />
                   Pointage
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/time/dashboard")}>
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  Tableau de Bord Temps
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {isAdmin && (
